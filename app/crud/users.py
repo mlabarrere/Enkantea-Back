@@ -1,14 +1,23 @@
 from sqlmodel import select, Session
 from fastapi import HTTPException, status
-from app.models.users import User, UserCreate, UserUpdate, UserRead
-from app.models.users import Organisation, OrganisationCreate, UserOrganisationLink, UserRole
+from app.models.users import (
+    User,
+    UserCreate,
+    UserUpdate,
+    UserRead,
+    UserOrganisationLink,
+    UserRole,
+)
+from app.models.organisations import Organisation, OrganisationCreate
 from app.core.security import get_password_hash, verify_password
 
 
 def create_user(*, session: Session, user_create: UserCreate) -> UserRead:
     try:
         # Créer l'organisation
-        organisation_create = OrganisationCreate(company_name=f'{user_create.first_name} {user_create.last_name}')
+        organisation_create = OrganisationCreate(
+            company_name=f"{user_create.first_name} {user_create.last_name}"
+        )
         organisation = Organisation.model_validate(obj=organisation_create)
         session.add(organisation)
         session.commit()
@@ -23,7 +32,9 @@ def create_user(*, session: Session, user_create: UserCreate) -> UserRead:
         session.refresh(db_user)
 
         # Lier l'utilisateur à l'organisation avec le rôle OWNER
-        user_org_link = UserOrganisationLink(user_id=db_user.id, organisation_id=organisation.id, role=UserRole.OWNER)
+        user_org_link = UserOrganisationLink(
+            user_id=db_user.id, organisation_id=organisation.id, role=UserRole.OWNER
+        )
         session.add(user_org_link)
         session.commit()
         session.refresh(user_org_link)
@@ -33,19 +44,18 @@ def create_user(*, session: Session, user_create: UserCreate) -> UserRead:
         session.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f'An error occurred while creating the user and organisation: {str(e)}'
+            detail=f"An error occurred while creating the user and organisation: {str(e)}",
         )
-
 
 
 def update_user(*, session: Session, db_user: User, user_in: UserUpdate) -> UserRead:
     try:
         user_data = user_in.model_dump(exclude_unset=True)
-        if 'password' in user_data.keys():
+        if "password" in user_data.keys():
             raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail='Password cannot be updated',
-                    )
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Password cannot be updated",
+            )
         for key, value in user_data.items():
             setattr(db_user, key, value)
 
@@ -57,7 +67,7 @@ def update_user(*, session: Session, db_user: User, user_in: UserUpdate) -> User
         session.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f'An error occurred while updating the user: {str(e)}',
+            detail=f"An error occurred while updating the user: {str(e)}",
         )
 
 
@@ -68,7 +78,7 @@ def get_user_by_email(*, session: Session, email: str) -> UserRead | None:
         if not session_user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f'User with email {email} not found.',
+                detail=f"User with email {email} not found.",
             )
         return session_user
     except HTTPException:
@@ -76,7 +86,7 @@ def get_user_by_email(*, session: Session, email: str) -> UserRead | None:
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f'An error occurred while fetching the user: {str(e)}',
+            detail=f"An error occurred while fetching the user: {str(e)}",
         )
 
 
@@ -87,7 +97,7 @@ def authenticate(session: Session, email: str, password: str) -> UserRead | None
             plain_password=password, hashed_password=db_user.password
         ):
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid password'
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid password"
             )
         return db_user
     except HTTPException:
@@ -95,6 +105,5 @@ def authenticate(session: Session, email: str, password: str) -> UserRead | None
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail='An unexpected error occurred',
+            detail="An unexpected error occurred",
         ) from e
-

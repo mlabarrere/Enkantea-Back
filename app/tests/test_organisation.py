@@ -7,7 +7,8 @@ from app.crud.organisations import (
     get_organisation_by_name,
     delete_organisation,
 )
-from app.models.users import OrganisationCreate, OrganisationUpdate, CompanyType
+from fastapi import HTTPException
+from app.models.organisations import OrganisationCreate, OrganisationUpdate, CompanyType
 from fastapi.testclient import TestClient
 from app.main import app
 
@@ -20,7 +21,7 @@ def session_fixture():
     SQLModel.metadata.create_all(engine)
     with Session(engine) as session:
         yield session
-    #SQLModel.metadata.drop_all(engine)
+    SQLModel.metadata.drop_all(engine)
 
 
 @pytest.fixture(name="client")
@@ -92,15 +93,17 @@ def test_get_organisation_by_name(session: Session) -> None:
 
 
 def test_delete_organisation(session: Session) -> None:
-    organisation_in = OrganisationCreate(**orga_data_tests)
+    organisation_in = OrganisationCreate(company_name="Deleted Company")
     organisation = create_organisation(
         session=session, organisation_create=organisation_in
     )
+    
     deleted_organisation = delete_organisation(
         session=session, organisation_id=organisation.id
     )
     assert deleted_organisation
     assert deleted_organisation.id == organisation.id
-    assert (
+    with pytest.raises(HTTPException) as excinfo:
         get_organisation_by_id(session=session, organisation_id=organisation.id) is None
-    )
+        assert excinfo.value.status_code == 404
+

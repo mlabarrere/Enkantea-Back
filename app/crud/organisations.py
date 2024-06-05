@@ -1,6 +1,6 @@
 from sqlmodel import Session, select
 from fastapi import HTTPException, status
-from app.models.users import (
+from app.models.organisations import (
     Organisation,
     OrganisationCreate,
     OrganisationUpdate,

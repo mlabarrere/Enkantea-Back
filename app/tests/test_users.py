@@ -37,10 +37,10 @@ def random_email() -> str:
 
 
 user_data_tests = {
-    "last_name": 'Pépito',#random_lower_string(),
+    "last_name": "Pépito",  # random_lower_string(),
     "first_name": random_lower_string(),
     "password": random_lower_string(),
-    "email": 'pepito@gmail.com'# "email": random_email()
+    "email": "pepito@gmail.com",  # "email": random_email()
 }
 
 
@@ -120,7 +120,10 @@ def test_get_user(session: Session) -> None:
     password = random_lower_string()
     email = random_email()
     user_in = UserCreate(
-        email=email, password=password, last_name=random_lower_string(), first_name=random_lower_string()
+        email=email,
+        password=password,
+        last_name=random_lower_string(),
+        first_name=random_lower_string(),
     )
     user = create_user(session=session, user_create=user_in)
     user_2 = session.get(User, user.id)
