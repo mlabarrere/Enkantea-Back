@@ -97,7 +97,7 @@ def test_delete_organisation(session: Session) -> None:
     organisation = create_organisation(
         session=session, organisation_create=organisation_in
     )
-    
+
     deleted_organisation = delete_organisation(
         session=session, organisation_id=organisation.id
     )
@@ -106,4 +106,3 @@ def test_delete_organisation(session: Session) -> None:
     with pytest.raises(HTTPException) as excinfo:
         get_organisation_by_id(session=session, organisation_id=organisation.id) is None
         assert excinfo.value.status_code == 404
-
