@@ -1,0 +1,8 @@
+fastapi
+sqlmodel
+pandas
+openpyxl
+python-jose
+bcrypt==4.0.1
+passlib
+pydantic-settings
