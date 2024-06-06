@@ -5,10 +5,26 @@ from fastapi import HTTPException, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.testclient import TestClient
 from sqlmodel import Session, create_engine, SQLModel, select
-from app.models.users import User, UserCreate, UserUpdate, UserRole, UserOrganisationLink
+from app.models.users import (
+    User,
+    UserCreate,
+    UserUpdate,
+    UserRole,
+    UserOrganisationLink,
+)
 from app.models.organisations import Organisation
+from app.models.clients import Client
+from app.models.sales import Sale
+from app.models.lots import Lot
+from app.models.invoices import Invoice
 from app.main import app
-from app.crud.users import create_user, authenticate, get_user_by_email, update_user, add_user_to_organisation
+from app.crud.users import (
+    create_user,
+    authenticate,
+    get_user_by_email,
+    update_user,
+    add_user_to_organisation,
+)
 
 
 # from app.core.security import verify_password
@@ -45,19 +61,28 @@ def test_create_user_with_organisation(session: Session) -> None:
         "password": random_lower_string(),
         "email": "pepito@gmail.com",  # "email": random_email()
     }
-    user_in = UserCreate(**user_data_tests)
+    user_in = UserCreate(email = user_data_tests["email"], last_name = user_data_tests["last_name"], first_name = user_data_tests["first_name"], password = user_data_tests["password"])
+    print(f'USEEEEEEEER: {user_in}')
     user = create_user(session=session, user_create=user_in)
     assert user.email == user_data_tests["email"]
     assert user.first_name == user_data_tests["first_name"]
     assert user.last_name == user_data_tests["last_name"]
     assert hasattr(user, "password")
 
-    organisation = session.exec(select(Organisation).where(Organisation.company_name == f"{user.first_name} {user.last_name}")).first()
+    organisation = session.exec(
+        select(Organisation).where(
+            Organisation.company_name == f"{user.first_name} {user.last_name}"
+        )
+    ).first()
     assert organisation
-    user_org_link = session.exec(select(UserOrganisationLink).where(UserOrganisationLink.user_id == user.id, UserOrganisationLink.organisation_id == organisation.id)).first()
+    user_org_link = session.exec(
+        select(UserOrganisationLink).where(
+            UserOrganisationLink.user_id == user.id,
+            UserOrganisationLink.organisation_id == organisation.id,
+        )
+    ).first()
     assert user_org_link
     assert user_org_link.role == UserRole.OWNER
-
 
 
 def test_authenticate_user(session: Session) -> None:
@@ -70,7 +95,8 @@ def test_authenticate_user(session: Session) -> None:
         "password": random_lower_string(),
         "email": "pepito@gmail.com",  # "email": random_email()
     }
-    user_in = UserCreate(**user_data_tests)
+    user_in = UserCreate(email = user_data_tests["email"], last_name = user_data_tests["last_name"], first_name = user_data_tests["first_name"], password = user_data_tests["password"])
+    
     _ = create_user(session=session, user_create=user_in)
     authenticated_user = authenticate(
         session=session,
@@ -196,6 +222,7 @@ def test_update_user(session: Session) -> None:
 
     # assert verify_password(plain_password=new_password, hashed_password=user_2.password)
 
+
 def test_add_user_to_existing_organisation(session: Session) -> None:
     user_data_tests = {
         "last_name": "Pépito",  # random_lower_string(),
@@ -212,7 +239,12 @@ def test_add_user_to_existing_organisation(session: Session) -> None:
     session.commit()
     session.refresh(organisation)
 
-    user_org_link = add_user_to_organisation(session=session, user_id=user.id, organisation_id=organisation.id, role=UserRole.USER)
+    user_org_link = add_user_to_organisation(
+        session=session,
+        user_id=user.id,
+        organisation_id=organisation.id,
+        role=UserRole.USER,
+    )
     assert user_org_link
     assert user_org_link.user_id == user.id
     assert user_org_link.organisation_id == organisation.id
