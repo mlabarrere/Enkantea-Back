@@ -107,3 +107,62 @@ def authenticate(session: Session, email: str, password: str) -> UserRead | None
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An unexpected error occurred",
         ) from e
+
+def add_user_to_organisation(
+    *,
+    session: Session,
+    user_id: int,
+    organisation_id: int,
+    role: UserRole
+) -> UserOrganisationLink:
+    try:
+        # Fetch the user
+        user = session.get(User, user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+
+        # Fetch the organisation
+        organisation = session.get(Organisation, organisation_id)
+        if not organisation:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Organisation not found"
+            )
+
+        # Check if user is already a member of the organisation
+        statement = select(UserOrganisationLink).where(
+            UserOrganisationLink.user_id == user_id,
+            UserOrganisationLink.organisation_id == organisation_id
+        )
+        existing_link = session.exec(statement).first()
+        if existing_link:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User is already a member of this organisation"
+            )
+
+        # Create the link between user and organisation
+        user_org_link = UserOrganisationLink(
+            user_id=user_id,
+            organisation_id=organisation_id,
+            role=role
+        )
+        session.add(user_org_link)
+        session.commit()
+        session.refresh(user_org_link)
+
+        return user_org_link
+
+    except HTTPException as e:
+        # Re-raise known HTTP exceptions
+        raise e
+    except Exception as e:
+        # Rollback session on any other exception
+        session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An unexpected error occurred: {str(e)}"
+        ) from e
