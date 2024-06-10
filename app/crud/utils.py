@@ -2,8 +2,9 @@ from sqlmodel import select, Session
 from app.models.users import UserOrganisationLink
 
 
-
-def is_user_authorized_for_organisation(session: Session, user_id: int, organisation_id: int) -> bool:
+def is_user_authorized_for_organisation(
+    session: Session, user_id: int, organisation_id: int
+) -> bool:
     """
     Check if the user is authorized to access the organisation.
 
@@ -17,7 +18,7 @@ def is_user_authorized_for_organisation(session: Session, user_id: int, organisa
     """
     statement = select(UserOrganisationLink).where(
         UserOrganisationLink.user_id == user_id,
-        UserOrganisationLink.organisation_id == organisation_id
+        UserOrganisationLink.organisation_id == organisation_id,
     )
     result = session.exec(statement).first()
     return result is not None

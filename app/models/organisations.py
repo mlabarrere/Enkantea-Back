@@ -13,15 +13,15 @@ if TYPE_CHECKING:
 
 # CompanyType Enum
 class CompanyType(str, Enum):
-    EI = 'Entrepreneur individuel (EI) (y compris micro-entrepreneur)'
-    EURL = 'Entreprise unipersonnelle à responsabilité limitée (EURL)'
-    SARL = 'Société à responsabilité limitée (SARL)'
-    SASU = 'Société par actions simplifiée unipersonnelle (SASU)'
-    SAS = 'Société par actions simplifiée (SAS)'
-    SA = 'Société anonyme (SA)'
-    SNC = 'Société en nom collectif (SNC)'
-    SCS = 'Société en commandite simple (SCS)'
-    SCA = 'Société en commandite par actions (SCA)'
+    EI = "Entrepreneur individuel (EI) (y compris micro-entrepreneur)"
+    EURL = "Entreprise unipersonnelle à responsabilité limitée (EURL)"
+    SARL = "Société à responsabilité limitée (SARL)"
+    SASU = "Société par actions simplifiée unipersonnelle (SASU)"
+    SAS = "Société par actions simplifiée (SAS)"
+    SA = "Société anonyme (SA)"
+    SNC = "Société en nom collectif (SNC)"
+    SCS = "Société en commandite simple (SCS)"
+    SCA = "Société en commandite par actions (SCA)"
 
 
 class OrganisationBase(SQLModel):
@@ -49,11 +49,11 @@ class Organisation(OrganisationBase, table=True):
     id: int = Field(default=None, primary_key=True)
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
-    users: list["User"] = Relationship(back_populates='organisation')
-    clients: list["Client"] = Relationship(back_populates='organisation')
-    sales: list["Sale"] = Relationship(back_populates='organisation')
-    lots: list["Lot"] = Relationship(back_populates='organisation')
-    invoices: list["Invoice"] = Relationship(back_populates='organisation')
+    users: list["User"] = Relationship(back_populates="organisation")
+    clients: list["Client"] = Relationship(back_populates="organisation")
+    sales: list["Sale"] = Relationship(back_populates="organisation")
+    lots: list["Lot"] = Relationship(back_populates="organisation")
+    invoices: list["Invoice"] = Relationship(back_populates="organisation")
     # payments: list['Payment'] = Relationship(back_populates='organisation')
 
 

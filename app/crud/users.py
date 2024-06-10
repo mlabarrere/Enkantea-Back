@@ -11,10 +11,11 @@ from app.models.users import (
 from app.models.organisations import Organisation, OrganisationCreate
 from app.core.security import get_password_hash, verify_password
 
+
 def create_user(*, session: Session, user_create: UserCreate) -> UserRead:
-    """ try: """
+    """try:"""
     user_data = user_create.model_dump(exclude_unset=False)
-    print(f'USER DATA: {user_create}')
+    print(f"USER DATA: {user_create}")
     # Vérifier si l'utilisateur existe déjà
     statement = select(User).where(User.email == user_create)
     # Créer l'organisation

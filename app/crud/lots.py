@@ -3,6 +3,7 @@ from fastapi import HTTPException, status
 from app.models.lots import Lot, LotCreate, LotRead, LotUpdate
 from app.crud.utils import is_user_authorized_for_organisation
 
+
 def create_lot(session: Session, user_id: int, lot_create: LotCreate) -> LotRead:
     """
     Create a new lot in the database.
@@ -18,10 +19,12 @@ def create_lot(session: Session, user_id: int, lot_create: LotCreate) -> LotRead
     Raises:
         HTTPException: If an error occurs during lot creation or if the user is not authorized.
     """
-    if not is_user_authorized_for_organisation(session, user_id, lot_create.organisation_id):
+    if not is_user_authorized_for_organisation(
+        session, user_id, lot_create.organisation_id
+    ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="User is not authorized to create lots for this organisation."
+            detail="User is not authorized to create lots for this organisation.",
         )
 
     try:
@@ -34,8 +37,9 @@ def create_lot(session: Session, user_id: int, lot_create: LotCreate) -> LotRead
         session.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An error occurred while creating the lot: {str(e)}"
+            detail=f"An error occurred while creating the lot: {str(e)}",
         )
+
 
 def get_lot_by_id(session: Session, user_id: int, lot_id: int) -> LotRead:
     """
@@ -55,19 +59,21 @@ def get_lot_by_id(session: Session, user_id: int, lot_id: int) -> LotRead:
     lot = session.get(Lot, lot_id)
     if not lot:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Lot not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Lot not found"
         )
 
     if not is_user_authorized_for_organisation(session, user_id, lot.organisation_id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="User is not authorized to access this lot."
+            detail="User is not authorized to access this lot.",
         )
 
     return lot
 
-def update_lot(session: Session, user_id: int, lot_id: int, lot_update: LotUpdate) -> LotRead:
+
+def update_lot(
+    session: Session, user_id: int, lot_id: int, lot_update: LotUpdate
+) -> LotRead:
     """
     Update an existing lot in the database.
 
@@ -87,19 +93,20 @@ def update_lot(session: Session, user_id: int, lot_id: int, lot_update: LotUpdat
         lot = session.get(Lot, lot_id)
         if not lot:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Lot not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Lot not found"
             )
 
-        if not is_user_authorized_for_organisation(session, user_id, lot.organisation_id):
+        if not is_user_authorized_for_organisation(
+            session, user_id, lot.organisation_id
+        ):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="User is not authorized to update this lot."
+                detail="User is not authorized to update this lot.",
             )
 
         for key, value in lot_update.model_dump(exclude_unset=True).items():
             setattr(lot, key, value)
-        
+
         session.add(lot)
         session.commit()
         session.refresh(lot)
@@ -108,8 +115,9 @@ def update_lot(session: Session, user_id: int, lot_id: int, lot_update: LotUpdat
         session.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An error occurred while updating the lot: {str(e)}"
+            detail=f"An error occurred while updating the lot: {str(e)}",
         )
+
 
 def delete_lot(session: Session, user_id: int, lot_id: int) -> LotRead:
     """
@@ -130,14 +138,15 @@ def delete_lot(session: Session, user_id: int, lot_id: int) -> LotRead:
         lot = session.get(Lot, lot_id)
         if not lot:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Lot not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Lot not found"
             )
 
-        if not is_user_authorized_for_organisation(session, user_id, lot.organisation_id):
+        if not is_user_authorized_for_organisation(
+            session, user_id, lot.organisation_id
+        ):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="User is not authorized to delete this lot."
+                detail="User is not authorized to delete this lot.",
             )
 
         session.delete(lot)
@@ -147,5 +156,5 @@ def delete_lot(session: Session, user_id: int, lot_id: int) -> LotRead:
         session.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An error occurred while deleting the lot: {str(e)}"
+            detail=f"An error occurred while deleting the lot: {str(e)}",
         )

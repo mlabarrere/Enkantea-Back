@@ -8,14 +8,14 @@ if TYPE_CHECKING:
 
 
 class UserRole(str, Enum):
-    OWNER = 'owner'
-    ADMIN = 'admin'
-    USER = 'user'
+    OWNER = "owner"
+    ADMIN = "admin"
+    USER = "user"
 
 
 class UserOrganisationLink(SQLModel, table=True):
-    user_id: int = Field(foreign_key='user.id', primary_key=True)
-    organisation_id: int = Field(foreign_key='organisation.id', primary_key=True)
+    user_id: int = Field(foreign_key="user.id", primary_key=True)
+    organisation_id: int = Field(foreign_key="organisation.id", primary_key=True)
     role: UserRole
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
@@ -41,8 +41,8 @@ class User(UserBase, table=True):
     id: int = Field(default=None, primary_key=True)
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
-    organisation_id: int = Field(default=None, foreign_key='organisation.id')
-    organisation: "Organisation" = Relationship(back_populates='users')
+    organisation_id: int = Field(default=None, foreign_key="organisation.id")
+    organisation: "Organisation" = Relationship(back_populates="users")
 
 
 class UserCreate(UserBase):

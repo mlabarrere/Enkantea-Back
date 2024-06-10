@@ -14,12 +14,12 @@ if TYPE_CHECKING:
 
 
 class SaleStatus(str, Enum):
-    DRAFT = 'draft'
-    PLANNED = 'planned'
-    ONGOING = 'ongoing'
-    PAUSED = 'paused'
-    COMPLETED = 'completed'
-    CANCELED = 'canceled'
+    DRAFT = "draft"
+    PLANNED = "planned"
+    ONGOING = "ongoing"
+    PAUSED = "paused"
+    COMPLETED = "completed"
+    CANCELED = "canceled"
 
 
 class SaleBase(SQLModel):
@@ -43,16 +43,16 @@ class SaleBase(SQLModel):
 
 class Sale(SaleBase, table=True):
     id: int = Field(default=None, primary_key=True)
-    lots: list["Lot"] = Relationship(back_populates='sale')
-    organisation_id: int = Field(default=None, foreign_key='organisation.id')
+    lots: list["Lot"] = Relationship(back_populates="sale")
+    organisation_id: int = Field(default=None, foreign_key="organisation.id")
     organisation: "Organisation" = Relationship(
-        back_populates='sales',
+        back_populates="sales",
         sa_relationship_kwargs={
-            'foreign_keys': 'Sale.organisation_id',
-            'lazy': 'selectin',
+            "foreign_keys": "Sale.organisation_id",
+            "lazy": "selectin",
         },
     )
-    invoices: list['Invoice'] = Relationship(back_populates='sale')
+    invoices: list["Invoice"] = Relationship(back_populates="sale")
 
 
 class SaleCreate(SaleBase):
@@ -61,9 +61,9 @@ class SaleCreate(SaleBase):
 
 
 class SaleRead(SaleBase):
-    organisation_id : int
+    organisation_id: int
     id: int
-    lots: list['LotRead'] | None = None
+    lots: list["LotRead"] | None = None
 
 
 class SaleUpdate(SaleBase):

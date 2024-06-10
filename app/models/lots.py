@@ -9,6 +9,7 @@ if TYPE_CHECKING:
     from app.models.invoices import Invoice
     from app.models.lots import Lot
 
+
 class LotBase(SQLModel):
     name: str | None = None
     description: str | None = None
@@ -38,28 +39,28 @@ class LotBase(SQLModel):
 
 class Lot(LotBase, table=True):
     id: int = Field(default=None, primary_key=True)
-    seller_id: int | None = Field(default=None, foreign_key='client.id')
+    seller_id: int | None = Field(default=None, foreign_key="client.id")
     seller: "Client" = Relationship(
-        back_populates='lots_sell',
-        sa_relationship_kwargs={'foreign_keys': 'Lot.seller_id'},
+        back_populates="lots_sell",
+        sa_relationship_kwargs={"foreign_keys": "Lot.seller_id"},
     )
-    sale_id: int | None = Field(default=None, foreign_key='sale.id')
-    sale: "Sale" = Relationship(back_populates='lots')
-    buyer_id: int | None = Field(default=None, foreign_key='client.id')
+    sale_id: int | None = Field(default=None, foreign_key="sale.id")
+    sale: "Sale" = Relationship(back_populates="lots")
+    buyer_id: int | None = Field(default=None, foreign_key="client.id")
     buyer: "Client" = Relationship(
-        back_populates='lots_buy',
-        sa_relationship_kwargs={'foreign_keys': 'Lot.buyer_id'},
+        back_populates="lots_buy",
+        sa_relationship_kwargs={"foreign_keys": "Lot.buyer_id"},
     )
-    organisation_id: int = Field(default=None, foreign_key='organisation.id')
+    organisation_id: int = Field(default=None, foreign_key="organisation.id")
     organisation: "Organisation" = Relationship(
-        back_populates='lots',
+        back_populates="lots",
         sa_relationship_kwargs={
-            'foreign_keys': 'Lot.organisation_id',
-            'lazy': 'selectin',
+            "foreign_keys": "Lot.organisation_id",
+            "lazy": "selectin",
         },
     )
-    invoice_id: int | None = Field(default=None, foreign_key='invoice.id')
-    invoice: 'Invoice' = Relationship(back_populates='lots')
+    invoice_id: int | None = Field(default=None, foreign_key="invoice.id")
+    invoice: "Invoice" = Relationship(back_populates="lots")
 
 
 class LotCreate(LotBase):

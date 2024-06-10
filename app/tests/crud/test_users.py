@@ -61,8 +61,12 @@ def test_create_user_with_organisation(session: Session) -> None:
         "password": random_lower_string(),
         "email": "pepito@gmail.com",  # "email": random_email()
     }
-    user_in = UserCreate(email = user_data_tests["email"], last_name = user_data_tests["last_name"], first_name = user_data_tests["first_name"], password = user_data_tests["password"])
-    print(f'USEEEEEEEER: {user_in}')
+    user_in = UserCreate(
+        email=user_data_tests["email"],
+        last_name=user_data_tests["last_name"],
+        first_name=user_data_tests["first_name"],
+        password=user_data_tests["password"],
+    )
     user = create_user(session=session, user_create=user_in)
     assert user.email == user_data_tests["email"]
     assert user.first_name == user_data_tests["first_name"]
@@ -95,8 +99,13 @@ def test_authenticate_user(session: Session) -> None:
         "password": random_lower_string(),
         "email": "pepito@gmail.com",  # "email": random_email()
     }
-    user_in = UserCreate(email = user_data_tests["email"], last_name = user_data_tests["last_name"], first_name = user_data_tests["first_name"], password = user_data_tests["password"])
-    
+    user_in = UserCreate(
+        email=user_data_tests["email"],
+        last_name=user_data_tests["last_name"],
+        first_name=user_data_tests["first_name"],
+        password=user_data_tests["password"],
+    )
+
     _ = create_user(session=session, user_create=user_in)
     authenticated_user = authenticate(
         session=session,

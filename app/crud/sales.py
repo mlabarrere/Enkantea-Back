@@ -10,10 +10,14 @@ from app.models.clients import Client, ClientCreate, ClientUpdate
 from app.models.lots import Lot
 from app.models.organisations import Organisation, OrganisationCreate
 from app.crud.users import create_user, add_user_to_organisation
-from app.crud.clients import create_client, get_client_by_id, update_client, delete_client
+from app.crud.clients import (
+    create_client,
+    get_client_by_id,
+    update_client,
+    delete_client,
+)
 from app.crud.organisations import create_organisation
 from app.crud.lots import create_lot
-
 
 
 def create_sale(session: Session, user_id: int, sale_create: SaleCreate) -> SaleRead:
@@ -31,10 +35,12 @@ def create_sale(session: Session, user_id: int, sale_create: SaleCreate) -> Sale
     Raises:
         HTTPException: If an error occurs during sale creation or if the user is not authorized.
     """
-    if not is_user_authorized_for_organisation(session, user_id, sale_create.organisation_id):
+    if not is_user_authorized_for_organisation(
+        session, user_id, sale_create.organisation_id
+    ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="User is not authorized to create sales for this organisation."
+            detail="User is not authorized to create sales for this organisation.",
         )
 
     try:
@@ -47,8 +53,9 @@ def create_sale(session: Session, user_id: int, sale_create: SaleCreate) -> Sale
         session.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An error occurred while creating the sale: {str(e)}"
+            detail=f"An error occurred while creating the sale: {str(e)}",
         )
+
 
 def get_sale_by_id(session: Session, user_id: int, sale_id: int) -> SaleRead:
     """
@@ -68,19 +75,21 @@ def get_sale_by_id(session: Session, user_id: int, sale_id: int) -> SaleRead:
     sale = session.get(Sale, sale_id)
     if not sale:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Sale not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Sale not found"
         )
 
     if not is_user_authorized_for_organisation(session, user_id, sale.organisation_id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="User is not authorized to access this sale."
+            detail="User is not authorized to access this sale.",
         )
 
     return SaleRead.model_validate(sale)
 
-def update_sale(session: Session, user_id: int, sale_id: int, sale_update: SaleUpdate) -> SaleRead:
+
+def update_sale(
+    session: Session, user_id: int, sale_id: int, sale_update: SaleUpdate
+) -> SaleRead:
     """
     Update an existing sale in the database.
 
@@ -100,19 +109,20 @@ def update_sale(session: Session, user_id: int, sale_id: int, sale_update: SaleU
         sale = session.get(Sale, sale_id)
         if not sale:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Sale not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Sale not found"
             )
 
-        if not is_user_authorized_for_organisation(session, user_id, sale.organisation_id):
+        if not is_user_authorized_for_organisation(
+            session, user_id, sale.organisation_id
+        ):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="User is not authorized to update this sale."
+                detail="User is not authorized to update this sale.",
             )
 
         for key, value in sale_update.model_dump(exclude_unset=True).items():
             setattr(sale, key, value)
-        
+
         session.add(sale)
         session.commit()
         session.refresh(sale)
@@ -121,8 +131,9 @@ def update_sale(session: Session, user_id: int, sale_id: int, sale_update: SaleU
         session.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An error occurred while updating the sale: {str(e)}"
+            detail=f"An error occurred while updating the sale: {str(e)}",
         )
+
 
 def delete_sale(session: Session, user_id: int, sale_id: int) -> SaleRead:
     """
@@ -143,20 +154,21 @@ def delete_sale(session: Session, user_id: int, sale_id: int) -> SaleRead:
         sale = session.get(Sale, sale_id)
         if not sale:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Sale not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Sale not found"
             )
 
-        if not is_user_authorized_for_organisation(session, user_id, sale.organisation_id):
+        if not is_user_authorized_for_organisation(
+            session, user_id, sale.organisation_id
+        ):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="User is not authorized to delete this sale."
+                detail="User is not authorized to delete this sale.",
             )
 
         if session.exec(select(Lot).where(Lot.sale_id == sale_id)).first():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Cannot delete sale with associated lots."
+                detail="Cannot delete sale with associated lots.",
             )
 
         session.delete(sale)
@@ -166,5 +178,5 @@ def delete_sale(session: Session, user_id: int, sale_id: int) -> SaleRead:
         session.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An error occurred while deleting the sale: {str(e)}"
+            detail=f"An error occurred while deleting the sale: {str(e)}",
         )

@@ -16,12 +16,14 @@ from app.crud.organisations import create_organisation
 DATABASE_URL = "sqlite:///./test.db"
 engine = create_engine(DATABASE_URL, echo=False)
 
+
 @pytest.fixture(name="session")
 def session_fixture():
     SQLModel.metadata.create_all(engine)
     with Session(engine) as session:
         yield session
     SQLModel.metadata.drop_all(engine)
+
 
 def test_create_sale(session: Session) -> None:
     """
@@ -31,7 +33,7 @@ def test_create_sale(session: Session) -> None:
         "email": "user@example.com",
         "password": "password",
         "first_name": "John",
-        "last_name": "Doe"
+        "last_name": "Doe",
     }
     user_create = UserCreate(**user_data)
     user = create_user(session=session, user_create=user_create)
@@ -44,15 +46,16 @@ def test_create_sale(session: Session) -> None:
         "description": "Test Description",
         "start_datetime": datetime.now(timezone.utc),
         "end_datetime": datetime.now(timezone.utc),
-        "organisation_id": organisation.id
+        "organisation_id": organisation.id,
     }
     sale_create = SaleCreate(**sale_data)
     sale = create_sale(session=session, user_id=user.id, sale_create=sale_create)
-    
+
     # Vérification de la création de la vente
     assert sale.title == sale_data["title"]
     assert sale.description == sale_data["description"]
     assert sale.organisation_id == organisation.id
+
 
 def test_get_sale_by_id(session: Session) -> None:
     """
@@ -62,7 +65,7 @@ def test_get_sale_by_id(session: Session) -> None:
         "email": "user@example.com",
         "password": "password",
         "first_name": "John",
-        "last_name": "Doe"
+        "last_name": "Doe",
     }
     user_create = UserCreate(**user_data)
     user = create_user(session=session, user_create=user_create)
@@ -75,16 +78,21 @@ def test_get_sale_by_id(session: Session) -> None:
         "description": "Test Description",
         "start_datetime": datetime.now(timezone.utc),
         "end_datetime": datetime.now(timezone.utc),
-        "organisation_id": organisation.id
+        "organisation_id": organisation.id,
     }
     sale_create = SaleCreate(**sale_data)
-    created_sale = create_sale(session=session, user_id=user.id, sale_create=sale_create)
+    created_sale = create_sale(
+        session=session, user_id=user.id, sale_create=sale_create
+    )
 
-    fetched_sale = get_sale_by_id(session=session, user_id=user.id, sale_id=created_sale.id)
-    
+    fetched_sale = get_sale_by_id(
+        session=session, user_id=user.id, sale_id=created_sale.id
+    )
+
     # Vérification de la récupération de la vente
     assert fetched_sale.id == created_sale.id
     assert fetched_sale.title == created_sale.title
+
 
 def test_update_sale(session: Session) -> None:
     """
@@ -94,7 +102,7 @@ def test_update_sale(session: Session) -> None:
         "email": "user@example.com",
         "password": "password",
         "first_name": "John",
-        "last_name": "Doe"
+        "last_name": "Doe",
     }
     user_create = UserCreate(**user_data)
     user = create_user(session=session, user_create=user_create)
@@ -107,18 +115,26 @@ def test_update_sale(session: Session) -> None:
         "description": "Test Description",
         "start_datetime": datetime.now(timezone.utc),
         "end_datetime": datetime.now(timezone.utc),
-        "organisation_id": organisation.id
+        "organisation_id": organisation.id,
     }
     sale_create = SaleCreate(**sale_data)
-    created_sale = create_sale(session=session, user_id=user.id, sale_create=sale_create)
+    created_sale = create_sale(
+        session=session, user_id=user.id, sale_create=sale_create
+    )
 
     update_data = {"title": "Updated Sale", "description": "Updated Description"}
     sale_update = SaleUpdate(**update_data)
-    updated_sale = update_sale(session=session, user_id=user.id, sale_id=created_sale.id, sale_update=sale_update)
-    
+    updated_sale = update_sale(
+        session=session,
+        user_id=user.id,
+        sale_id=created_sale.id,
+        sale_update=sale_update,
+    )
+
     # Vérification de la mise à jour de la vente
     assert updated_sale.title == update_data["title"]
     assert updated_sale.description == update_data["description"]
+
 
 def test_delete_sale(session: Session) -> None:
     """
@@ -128,7 +144,7 @@ def test_delete_sale(session: Session) -> None:
         "email": "user@example.com",
         "password": "password",
         "first_name": "John",
-        "last_name": "Doe"
+        "last_name": "Doe",
     }
     user_create = UserCreate(**user_data)
     user = create_user(session=session, user_create=user_create)
@@ -141,13 +157,17 @@ def test_delete_sale(session: Session) -> None:
         "description": "Test Description",
         "start_datetime": datetime.now(timezone.utc),
         "end_datetime": datetime.now(timezone.utc),
-        "organisation_id": organisation.id
+        "organisation_id": organisation.id,
     }
     sale_create = SaleCreate(**sale_data)
-    created_sale = create_sale(session=session, user_id=user.id, sale_create=sale_create)
+    created_sale = create_sale(
+        session=session, user_id=user.id, sale_create=sale_create
+    )
 
-    deleted_sale = delete_sale(session=session, user_id=user.id, sale_id=created_sale.id)
-    
+    deleted_sale = delete_sale(
+        session=session, user_id=user.id, sale_id=created_sale.id
+    )
+
     # Vérification de la suppression de la vente
     assert deleted_sale.id == created_sale.id
     with pytest.raises(HTTPException) as excinfo:

@@ -4,7 +4,10 @@ from app.models.clients import Client, ClientCreate, ClientRead, ClientUpdate
 from app.models.lots import Lot
 from app.crud.utils import is_user_authorized_for_organisation
 
-def create_client(session: Session, user_id: int, client_create: ClientCreate) -> ClientRead:
+
+def create_client(
+    session: Session, user_id: int, client_create: ClientCreate
+) -> ClientRead:
     """
     Create a new client in the database.
 
@@ -19,10 +22,12 @@ def create_client(session: Session, user_id: int, client_create: ClientCreate) -
     Raises:
         HTTPException: If an error occurs during client creation or if the user is not authorized.
     """
-    if not is_user_authorized_for_organisation(session, user_id, client_create.organisation_id):
+    if not is_user_authorized_for_organisation(
+        session, user_id, client_create.organisation_id
+    ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="User is not authorized to create clients for this organisation."
+            detail="User is not authorized to create clients for this organisation.",
         )
 
     try:
@@ -35,8 +40,9 @@ def create_client(session: Session, user_id: int, client_create: ClientCreate) -
         session.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An error occurred while creating the client: {str(e)}"
+            detail=f"An error occurred while creating the client: {str(e)}",
         )
+
 
 def get_client_by_id(session: Session, user_id: int, client_id: int) -> ClientRead:
     """
@@ -56,19 +62,23 @@ def get_client_by_id(session: Session, user_id: int, client_id: int) -> ClientRe
     client = session.get(Client, client_id)
     if not client:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Client not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Client not found"
         )
 
-    if not is_user_authorized_for_organisation(session, user_id, client.organisation_id):
+    if not is_user_authorized_for_organisation(
+        session, user_id, client.organisation_id
+    ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="User is not authorized to access this client."
+            detail="User is not authorized to access this client.",
         )
 
     return client
 
-def update_client(session: Session, user_id: int, client_id: int, client_update: ClientUpdate) -> ClientRead:
+
+def update_client(
+    session: Session, user_id: int, client_id: int, client_update: ClientUpdate
+) -> ClientRead:
     """
     Update an existing client in the database.
 
@@ -88,19 +98,20 @@ def update_client(session: Session, user_id: int, client_id: int, client_update:
         client = session.get(Client, client_id)
         if not client:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Client not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Client not found"
             )
 
-        if not is_user_authorized_for_organisation(session, user_id, client.organisation_id):
+        if not is_user_authorized_for_organisation(
+            session, user_id, client.organisation_id
+        ):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="User is not authorized to update this client."
+                detail="User is not authorized to update this client.",
             )
 
         for key, value in client_update.model_dump(exclude_unset=True).items():
             setattr(client, key, value)
-        
+
         session.add(client)
         session.commit()
         session.refresh(client)
@@ -109,8 +120,9 @@ def update_client(session: Session, user_id: int, client_id: int, client_update:
         session.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An error occurred while updating the client: {str(e)}"
+            detail=f"An error occurred while updating the client: {str(e)}",
         )
+
 
 def delete_client(session: Session, user_id: int, client_id: int) -> ClientRead:
     """
@@ -131,21 +143,24 @@ def delete_client(session: Session, user_id: int, client_id: int) -> ClientRead:
         client = session.get(Client, client_id)
         if not client:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Client not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Client not found"
             )
 
-        if not is_user_authorized_for_organisation(session, user_id, client.organisation_id):
+        if not is_user_authorized_for_organisation(
+            session, user_id, client.organisation_id
+        ):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="User is not authorized to delete this client."
+                detail="User is not authorized to delete this client.",
             )
 
-        if session.exec(select(Lot).where(Lot.seller_id == client_id)).first() or \
-           session.exec(select(Lot).where(Lot.buyer_id == client_id)).first():
+        if (
+            session.exec(select(Lot).where(Lot.seller_id == client_id)).first()
+            or session.exec(select(Lot).where(Lot.buyer_id == client_id)).first()
+        ):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Cannot delete client with associated lots."
+                detail="Cannot delete client with associated lots.",
             )
 
         session.delete(client)
@@ -155,5 +170,5 @@ def delete_client(session: Session, user_id: int, client_id: int) -> ClientRead:
         session.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An error occurred while deleting the client: {str(e)}"
+            detail=f"An error occurred while deleting the client: {str(e)}",
         )

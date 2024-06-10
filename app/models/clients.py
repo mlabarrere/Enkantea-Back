@@ -27,26 +27,26 @@ class Client(ClientBase, table=True):
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
     lots_sell: list["Lot"] | None = Relationship(
-        back_populates='seller',
-        sa_relationship_kwargs={'foreign_keys': 'Lot.seller_id', 'lazy': 'selectin'},
+        back_populates="seller",
+        sa_relationship_kwargs={"foreign_keys": "Lot.seller_id", "lazy": "selectin"},
     )
     lots_buy: list["Lot"] | None = Relationship(
-        back_populates='buyer',
-        sa_relationship_kwargs={'foreign_keys': 'Lot.buyer_id', 'lazy': 'selectin'},
+        back_populates="buyer",
+        sa_relationship_kwargs={"foreign_keys": "Lot.buyer_id", "lazy": "selectin"},
     )
-    organisation_id: int = Field(default=None, foreign_key='organisation.id')
+    organisation_id: int = Field(default=None, foreign_key="organisation.id")
     organisation: "Organisation" = Relationship(
-        back_populates='clients',
+        back_populates="clients",
         sa_relationship_kwargs={
-            'foreign_keys': 'Client.organisation_id',
-            'lazy': 'selectin',
+            "foreign_keys": "Client.organisation_id",
+            "lazy": "selectin",
         },
     )
     invoices: list["Invoice"] | None = Relationship(
-        back_populates='client',
+        back_populates="client",
         sa_relationship_kwargs={
-            'foreign_keys': 'Invoice.client_id',
-            'lazy': 'selectin',
+            "foreign_keys": "Invoice.client_id",
+            "lazy": "selectin",
         },
     )
 

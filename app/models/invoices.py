@@ -15,14 +15,14 @@ if TYPE_CHECKING:
 
 # Enum for payment status
 class PaymentStatus(str, Enum):
-    PAID = 'paid'
-    PENDING = 'pending'
-    OVERDUE = 'overdue'
-    PARTIALLY_PAID = 'partially_paid'
+    PAID = "paid"
+    PENDING = "pending"
+    OVERDUE = "overdue"
+    PARTIALLY_PAID = "partially_paid"
 
 
 class InvoiceBase(SQLModel):
-    client_id: int = Field(default=None, foreign_key='client.id')
+    client_id: int = Field(default=None, foreign_key="client.id")
     sale_id: int
     number: str
     created_at: datetime = Field(default_factory=datetime.now)
@@ -37,23 +37,23 @@ class InvoiceBase(SQLModel):
     public_url: str | None = None
 
     def generate_public_url(self):
-        return hashlib.sha512(f'{self.number}'.encode('utf-8')).hexdigest()
+        return hashlib.sha512(f"{self.number}".encode("utf-8")).hexdigest()
 
 
 class Invoice(InvoiceBase, table=True):
     id: int = Field(default=None, primary_key=True)
-    lots: list["Lot"] = Relationship(back_populates='invoice')
-    organisation_id: int = Field(default=None, foreign_key='organisation.id')
+    lots: list["Lot"] = Relationship(back_populates="invoice")
+    organisation_id: int = Field(default=None, foreign_key="organisation.id")
     organisation: "Organisation" = Relationship(
-        back_populates='invoices',
+        back_populates="invoices",
         sa_relationship_kwargs={
-            'foreign_keys': 'Invoice.organisation_id',
-            'lazy': 'selectin',
+            "foreign_keys": "Invoice.organisation_id",
+            "lazy": "selectin",
         },
     )
-    sale_id: int | None = Field(default=None, foreign_key='sale.id')
-    sale: "Sale" = Relationship(back_populates='invoices')
-    client: "Client" = Relationship(back_populates='invoices')
+    sale_id: int | None = Field(default=None, foreign_key="sale.id")
+    sale: "Sale" = Relationship(back_populates="invoices")
+    client: "Client" = Relationship(back_populates="invoices")
 
 
 class InvoiceCreate(InvoiceBase):
