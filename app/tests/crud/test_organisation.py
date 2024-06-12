@@ -1,5 +1,17 @@
 import pytest
 from sqlmodel import Session, create_engine, SQLModel
+from app.models.clients import Client
+from app.models.sales import Sale
+from app.models.lots import Lot
+from app.models.invoices import Invoice
+from app.models.organisations import (
+    OrganisationCreate,
+    OrganisationUpdate,
+    CompanyType,
+    Organisation,
+)
+from app.models.users import UserCreate, UserRole, UserOrganisationLink
+from app.crud.users import create_user
 from app.crud.organisations import (
     create_organisation,
     update_organisation,
@@ -9,19 +21,7 @@ from app.crud.organisations import (
     add_member_to_organisation,
     remove_member_from_organisation,
 )
-from app.models.clients import Client
-from app.models.sales import Sale
-from app.models.lots import Lot
-from app.models.invoices import Invoice
-from app.crud.users import create_user
 from fastapi import HTTPException, status
-from app.models.organisations import (
-    OrganisationCreate,
-    OrganisationUpdate,
-    CompanyType,
-    Organisation,
-)
-from app.models.users import UserCreate, UserRole, UserOrganisationLink
 from fastapi.testclient import TestClient
 from app.main import app
 from random import choices
