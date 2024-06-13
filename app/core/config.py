@@ -15,21 +15,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing_extensions import Self
 
 
-class Settings2:
-
-    PROJECT_NAME: str = "Marto.IA 🔨"
-    PROJECT_VERSION: str = "1.0.0"
-
-    SECRET_KEY: str = (
-        "hbSEXONCW1vSjreIRWy55ucYz76lo+FoPc9k9MyPTMM0BAaz4b2yc7VVHZRri8v7iwkEoSskMp6JBDE42um08w=="  # Hint : 64 Cat
-    )
-    ALGORITHM = "HS512"
-    ACCESS_TOKEN_EXPIRE_MINUTES = 30
-
-
-settings = Settings2()
-
-
 def parse_cors(v: Any) -> list[str] | str:
     if isinstance(v, str) and not v.startswith("["):
         return [i.strip() for i in v.split(",")]
@@ -61,12 +46,12 @@ class Settings(BaseSettings):
         []
     )
 
-    PROJECT_NAME: str
+    PROJECT_NAME: str = "Enkantea"
     SENTRY_DSN: HttpUrl | None = None
-    POSTGRES_SERVER: str
+    POSTGRES_SERVER: str = "Enkantea"
     POSTGRES_PORT: int = 5432
-    POSTGRES_USER: str
-    POSTGRES_PASSWORD: str
+    POSTGRES_USER: str = "Enkantea"
+    POSTGRES_PASSWORD: str = "Enkantea"
     POSTGRES_DB: str = ""
 
     @computed_field  # type: ignore[misc]
@@ -107,8 +92,8 @@ class Settings(BaseSettings):
     # TODO: update type to EmailStr when sqlmodel supports it
     EMAIL_TEST_USER: str = "test@example.com"
     # TODO: update type to EmailStr when sqlmodel supports it
-    FIRST_SUPERUSER: str
-    FIRST_SUPERUSER_PASSWORD: str
+    FIRST_SUPERUSER: str = "Enkantea"
+    FIRST_SUPERUSER_PASSWORD: str = "Enkantea"
     USERS_OPEN_REGISTRATION: bool = False
 
     def _check_default_secret(self, var_name: str, value: str | None) -> None:
