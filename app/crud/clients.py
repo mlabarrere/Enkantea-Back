@@ -77,42 +77,36 @@ def get_client_by_id(session: Session, user_id: int, client_id: int) -> ClientRe
 
 
 def update_client(
-    session: Session, user_id: int, client_id: int, client_update: ClientUpdate
+    session: Session, user_id: int, client_id: int, client_update: dict
 ) -> ClientRead:
     """
     Update an existing client in the database.
-
     Args:
         session (Session): The database session.
         user_id (int): The ID of the user updating the client.
         client_id (int): The ID of the client to update.
         client_update (ClientUpdate): The updated client data.
-
     Returns:
         ClientRead: The updated client data.
-
     Raises:
         HTTPException: If the client is not found or if the user is not authorized.
     """
+    client = session.get(Client, client_id)
+    if not client:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Client not found"
+        )
+    if not is_user_authorized_for_organisation(
+        session, user_id, client.organisation_id
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User is not authorized to update this client.",
+        )
     try:
-        client = session.get(Client, client_id)
-        if not client:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Client not found"
-            )
-
-        if not is_user_authorized_for_organisation(
-            session, user_id, client.organisation_id
-        ):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="User is not authorized to update this client.",
-            )
-
-        for key, value in client_update.model_dump(exclude_unset=True).items():
+        #update_data = client_update.dict(exclude_unset=True)
+        for key, value in client_update.items():
             setattr(client, key, value)
-
-        session.add(client)
         session.commit()
         session.refresh(client)
         return client
@@ -122,7 +116,6 @@ def update_client(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An error occurred while updating the client: {str(e)}",
         )
-
 
 def delete_client(session: Session, user_id: int, client_id: int) -> ClientRead:
     """

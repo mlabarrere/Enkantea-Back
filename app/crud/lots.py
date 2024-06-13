@@ -89,21 +89,21 @@ def update_lot(
     Raises:
         HTTPException: If the lot is not found or if the user is not authorized.
     """
+    
+    lot = session.get(Lot, lot_id)
+    if not lot:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Lot not found"
+        )
+
+    if not is_user_authorized_for_organisation(
+        session, user_id, lot.organisation_id
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User is not authorized to update this lot.",
+        )
     try:
-        lot = session.get(Lot, lot_id)
-        if not lot:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Lot not found"
-            )
-
-        if not is_user_authorized_for_organisation(
-            session, user_id, lot.organisation_id
-        ):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="User is not authorized to update this lot.",
-            )
-
         for key, value in lot_update.model_dump(exclude_unset=True).items():
             setattr(lot, key, value)
 

@@ -105,9 +105,6 @@ def test_create_lot_in_different_organisations(session: Session) -> None:
     user_create = UserCreate(**user_data)
     user = create_user(session=session, user_create=user_create)
 
-    # Accès à la première organisation via l'utilisateur
-    organisation1 = user.organisation
-
     # Création de la deuxième organisation
     organisation_data = {"company_name": "Second Organisation"}
     organisation_create = OrganisationCreate(**organisation_data)
@@ -150,7 +147,8 @@ def test_create_lot_in_different_organisations(session: Session) -> None:
 
 
 def test_user_cannot_create_lot_in_unassigned_organisation(session: Session) -> None:
-    # Création de l'utilisateur et de la première organisation
+    
+    # Etape 1 : Créer usager dans première organisation
     user_data = {
         "email": "user@example.com",
         "password": "password",
@@ -159,27 +157,37 @@ def test_user_cannot_create_lot_in_unassigned_organisation(session: Session) -> 
     }
     user_create = UserCreate(**user_data)
     user = create_user(session=session, user_create=user_create)
+    assert user.email == user_data["email"]
+    assert user.organisation is not None
+    assert user.organisation.company_name == f"{user_data['first_name']} {user_data['last_name']}"
+    assert len(user.organisation.users)== 1
+    assert len(user.organisation.clients) == 0
+    assert len(user.organisation.lots) == 0
 
-    # Accès à la première organisation via l'utilisateur
-    organisation1 = user.organisation
-
-    # Création de la deuxième organisation sans y ajouter l'utilisateur
+    # Etape 2 : Créer organisation sans ajouter d'utilisateur
     organisation_data = {"company_name": "Second Organisation"}
     organisation_create = OrganisationCreate(**organisation_data)
     organisation2 = create_organisation(
         session=session, organisation_create=organisation_create
     )
+    assert organisation2.company_name == organisation_data["company_name"]
+    assert len(organisation2.users) == 0
+    assert len(organisation2.clients) == 0
+    assert len(organisation2.lots) == 0
+    assert user.organisation != organisation2
 
-    # Création d'un client dans la deuxième organisation
+    # Etape 3 : Création d'un client dans la deuxième organisation avec l'user de l'autre orga 
     client_data = {
         "first_name": "Client",
         "last_name": "Test",
         "organisation_id": organisation2.id,
     }
     client_create = ClientCreate(**client_data)
-    client = create_client(
-        session=session, user_id=user.id, client_create=client_create
-    )
+    with pytest.raises(HTTPException) as excinfo:
+        _ = create_client(
+            session=session, user_id=user.id, client_create=client_create
+        )
+    assert excinfo.value.status_code == status.HTTP_403_FORBIDDEN
 
     # Tentative de création d'un lot dans la deuxième organisation
     lot_data = {
@@ -187,7 +195,7 @@ def test_user_cannot_create_lot_in_unassigned_organisation(session: Session) -> 
         "description": "Test Description",
         "starting_bid": 100.0,
         "organisation_id": organisation2.id,
-        "seller_id": client.id,
+        "seller_id": 1,
     }
     lot_create = LotCreate(**lot_data)
     with pytest.raises(HTTPException) as excinfo:

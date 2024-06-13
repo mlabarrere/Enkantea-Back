@@ -70,13 +70,10 @@ def test_get_client_by_id(session: Session) -> None:
     }
     user_create = UserCreate(**user_data)
     user = create_user(session=session, user_create=user_create)
-
-    organisation = user.organisation
-
     client_data = {
         'first_name': 'Client',
         'last_name': 'Test',
-        'organisation_id': organisation.id,
+        'organisation_id': user.organisation.id,
     }
     client_create = ClientCreate(**client_data)
     created_client = create_client(
@@ -96,6 +93,8 @@ def test_update_client(session: Session) -> None:
     """
     Test updating a client's details.
     """
+
+    # Step 1 : Create User
     user_data = {
         'email': 'user@example.com',
         'password': 'password',
@@ -104,31 +103,39 @@ def test_update_client(session: Session) -> None:
     }
     user_create = UserCreate(**user_data)
     user = create_user(session=session, user_create=user_create)
+    assert user.email == user_data['email']
+    assert user.first_name == user_data['first_name']
+    assert user.last_name == user_data['last_name']
 
-    organisation = user.organisation
-
+    # Step 2 : Create Client of User
     client_data = {
         'first_name': 'Client',
         'last_name': 'Test',
-        'organisation_id': organisation.id,
+        'organisation_id': user.organisation.id,
     }
     client_create = ClientCreate(**client_data)
     created_client = create_client(
         session=session, user_id=user.id, client_create=client_create
     )
+    assert created_client.first_name == client_data['first_name']
+    assert created_client.last_name == client_data['last_name']
+    assert created_client.organisation_id == user.organisation.id
 
+    # Step 3 : Update Client
     update_data = {'first_name': 'UpdatedClient', 'last_name': 'UpdatedTest'}
-    client_update = ClientUpdate(**update_data)
+    #client_update = ClientUpdate(**update_data)
     updated_client = update_client(
         session=session,
         user_id=user.id,
         client_id=created_client.id,
-        client_update=client_update,
+        client_update=update_data,
     )
 
     # Vérification de la mise à jour du client
     assert updated_client.first_name == update_data['first_name']
     assert updated_client.last_name == update_data['last_name']
+    assert updated_client.organisation_id == user.organisation.id
+    assert updated_client.id == created_client.id
 
 
 def test_delete_client(session: Session) -> None:
@@ -179,8 +186,6 @@ def test_user_cannot_create_client_in_unassigned_organisation(session: Session) 
     }
     user_create = UserCreate(**user_data)
     user = create_user(session=session, user_create=user_create)
-
-    organisation1 = user.organisation
 
     # Création de la deuxième organisation sans y ajouter l'utilisateur
     organisation_data = {'company_name': 'Second Organisation'}
