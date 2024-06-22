@@ -7,7 +7,7 @@ if TYPE_CHECKING:
     from app.models.sales import Sale
     from app.models.clients import Client, ClientRead
     from app.models.invoices import Invoice
-    from app.models.lots import Lot
+    from app.models.sellers import Seller
 
 
 class LotBase(SQLModel):
@@ -40,7 +40,7 @@ class LotBase(SQLModel):
 class Lot(LotBase, table=True):
     id: int = Field(default=None, primary_key=True)
     seller_id: int | None = Field(default=None, foreign_key="client.id")
-    seller: "Client" = Relationship(
+    seller: "Seller" = Relationship(
         back_populates="lots_sell",
         sa_relationship_kwargs={"foreign_keys": "Lot.seller_id"},
     )

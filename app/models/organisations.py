@@ -9,6 +9,21 @@ if TYPE_CHECKING:
     from app.models.clients import Client
     from app.models.lots import Lot
     from app.models.invoices import Invoice
+    from app.models.sellers import Seller
+
+
+class UserRole(str, Enum):
+    OWNER = "owner"
+    ADMIN = "admin"
+    USER = "user"
+    READONLY = "readonly"
+
+class UserOrganisationLink(SQLModel, table=True):
+    user_id: int = Field(foreign_key="user.id", primary_key=True)
+    organisation_id: int = Field(foreign_key="organisation.id", primary_key=True)
+    role: UserRole
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
 
 
 # CompanyType Enum
@@ -50,6 +65,7 @@ class Organisation(OrganisationBase, table=True):
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
     users: list["User"] = Relationship(back_populates="organisation")
+    sellers: list["Seller"] = Relationship(back_populates="organisation")
     clients: list["Client"] = Relationship(back_populates="organisation")
     sales: list["Sale"] = Relationship(back_populates="organisation")
     lots: list["Lot"] = Relationship(back_populates="organisation")

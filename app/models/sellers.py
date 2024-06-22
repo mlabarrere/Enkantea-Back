@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     from app.models.invoices import Invoice
 
 
-class ClientBase(SQLModel):
+class SellerBase(SQLModel):
     first_name: str | None = None
     last_name: str | None = None
     email: str | None = None
@@ -22,44 +22,44 @@ class ClientBase(SQLModel):
     professional: bool = False
 
 
-class Client(ClientBase, table=True):
+class Seller(SellerBase, table=True):
     id: int = Field(default=None, primary_key=True)
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
-    lots_buy: list["Lot"] | None = Relationship(
-        back_populates="buyer",
-        sa_relationship_kwargs={"foreign_keys": "Lot.buyer_id", "lazy": "selectin"},
+    lots_sell: list["Lot"] | None = Relationship(
+        back_populates="seller",
+        sa_relationship_kwargs={"foreign_keys": "Lot.seller_id", "lazy": "selectin"},
     )
     organisation_id: int = Field(default=None, foreign_key="organisation.id")
     organisation: "Organisation" = Relationship(
-        back_populates="clients",
+        back_populates="sellers",
         sa_relationship_kwargs={
-            "foreign_keys": "Client.organisation_id",
+            "foreign_keys": "Seller.organisation_id",
             "lazy": "selectin",
         },
     )
     invoices: list["Invoice"] | None = Relationship(
-        back_populates="client",
+        back_populates="seller",
         sa_relationship_kwargs={
-            "foreign_keys": "Invoice.client_id",
+            "foreign_keys": "Invoice.seller_id",
             "lazy": "selectin",
         },
     )
 
 
-class ClientCreate(ClientBase):
+class SellerCreate(SellerBase):
     organisation_id: int | None = None
     pass
 
 
-class ClientRead(ClientBase):
+class SellerRead(SellerBase):
     id: int
     organisation_id: int
     created_at: datetime
     updated_at: datetime
 
 
-class ClientUpdate(SQLModel):
+class SellerUpdate(SQLModel):
     name: str | None = None
     email: str | None = None
     phone: str | None = None

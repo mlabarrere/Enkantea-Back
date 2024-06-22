@@ -1,29 +1,13 @@
 from typing import TYPE_CHECKING
 from sqlmodel import Field, SQLModel, Relationship
 from datetime import datetime
-from enum import Enum
 
 if TYPE_CHECKING:
     from app.models.organisations import Organisation
 
 
-class UserRole(str, Enum):
-    OWNER = "owner"
-    ADMIN = "admin"
-    USER = "user"
-
-
-class UserOrganisationLink(SQLModel, table=True):
-    user_id: int = Field(foreign_key="user.id", primary_key=True)
-    organisation_id: int = Field(foreign_key="organisation.id", primary_key=True)
-    role: UserRole
-    created_at: datetime = Field(default_factory=datetime.now)
-    updated_at: datetime = Field(default_factory=datetime.now)
-
-
 class UserBase(SQLModel):
     email: str = Field(unique=True)
-    password: str | None = None
     first_name: str | None = None
     last_name: str | None = None
     phone: str | None = None
