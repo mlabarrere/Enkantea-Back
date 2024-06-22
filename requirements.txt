@@ -7,3 +7,5 @@ bcrypt==4.0.1
 passlib
 pydantic-settings
 pyjwt
+psycopg[binary,pool]
+python-multipart
