@@ -18,7 +18,7 @@ from app.models.sales import Sale
 from app.models.lots import Lot
 from app.models.invoices import Invoice
 from app.main import app
-from app.crud.users import (
+from app.data_layer.users import (
     create_user,
     authenticate,
     get_user_by_email,

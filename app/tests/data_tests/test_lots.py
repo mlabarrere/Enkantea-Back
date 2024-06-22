@@ -1,3 +1,75 @@
+"""
+TODO : 
+Création de lot
+- Création réussie avec tous les champs requis
+- Tentative de création sans authentification
+- Tentative de création avec des données invalides
+- Création avec des champs optionnels
+
+
+Récupération de lot
+- Récupération d'un lot spécifique par ID
+- Récupération de tous les lots d'un utilisateur
+- Tentative de récupération d'un lot inexistant
+- Tentative de récupération d'un lot appartenant à un autre utilisateur
+
+
+Mise à jour de lot
+- Mise à jour réussie de tous les champs modifiables
+- Mise à jour partielle (seulement certains champs)
+- Tentative de mise à jour d'un lot inexistant
+- Tentative de mise à jour d'un lot appartenant à un autre utilisateur
+- Tentative de mise à jour avec des données invalides
+
+
+Suppression de lot
+- Suppression réussie d'un lot
+- Tentative de suppression d'un lot inexistant
+- Tentative de suppression d'un lot appartenant à un autre utilisateur
+
+
+Autorisation et authentification
+- Accès aux routes avec un token valide
+- Accès aux routes avec un token expiré
+- Accès aux routes sans token
+- Accès aux routes avec un token invalide
+
+
+Gestion des erreurs
+- Réponses appropriées pour chaque type d'erreur (400, 401, 403, 404, 500)
+- Messages d'erreur clairs et informatifs
+
+
+Performances
+- Temps de réponse pour chaque opération CRUD
+- Comportement sous charge (plusieurs requêtes simultanées)
+
+
+Validations des données
+- Respect des contraintes de champs (longueur, type, format)
+- Gestion des valeurs nulles ou vides pour les champs obligatoires
+
+
+Intégration avec d'autres entités
+- Liens corrects avec l'organisation associée
+- Comportement lors de la suppression d'une organisation liée
+
+
+Pagination et filtrage (si implémentés)
+- Fonctionnement correct de la pagination pour la liste des lots
+- Application correcte des filtres sur la liste des lots
+
+
+Journalisation et audit
+- Enregistrement correct des actions de création, mise à jour et suppression
+- Traçabilité des modifications
+
+
+Gestion des transactions
+- Rollback correct en cas d'erreur lors de la création ou mise à jour
+
+"""
+
 import pytest
 from sqlmodel import Session, create_engine, SQLModel, select
 from fastapi import HTTPException, status
@@ -6,10 +78,10 @@ from app.models.users import User, UserCreate, UserRole, UserOrganisationLink
 from app.models.clients import Client, ClientCreate
 from app.models.lots import Lot, LotCreate, LotUpdate
 from app.models.organisations import Organisation, OrganisationCreate
-from app.crud.users import create_user, add_user_to_organisation
-from app.crud.clients import create_client
-from app.crud.lots import create_lot, get_lot_by_id, update_lot, delete_lot
-from app.crud.organisations import create_organisation
+from app.data_layer.users import create_user, add_user_to_organisation
+from app.data_layer.clients import create_client
+from app.data_layer.lots import create_lot, get_lot_by_id, update_lot, delete_lot
+from app.data_layer.organisations import create_organisation
 
 DATABASE_URL = "sqlite:///./test.db"
 engine = create_engine(DATABASE_URL, echo=False)

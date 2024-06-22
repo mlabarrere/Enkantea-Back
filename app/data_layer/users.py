@@ -13,7 +13,6 @@ from app.core.security import get_password_hash, verify_password
 
 
 def create_user(*, session: Session, user_create: UserCreate) -> UserRead:
-    """try:"""
     user_data = user_create.model_dump(exclude_unset=False)
     # Vérifier si l'utilisateur existe déjà
     statement = select(User).where(User.email == user_create)
@@ -43,12 +42,6 @@ def create_user(*, session: Session, user_create: UserCreate) -> UserRead:
     session.refresh(user_org_link)
 
     return db_user
-    """ except Exception as e:
-        session.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An error occurred while creating the user and organisation: {str(e)}",
-        ) """
 
 
 def update_user(*, session: Session, db_user: User, user_in: UserUpdate) -> UserRead:

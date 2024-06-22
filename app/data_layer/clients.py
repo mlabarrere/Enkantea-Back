@@ -2,7 +2,7 @@ from sqlmodel import Session, select
 from fastapi import HTTPException, status
 from app.models.clients import Client, ClientCreate, ClientRead, ClientUpdate
 from app.models.lots import Lot
-from app.crud.utils import is_user_authorized_for_organisation
+from app.data_layer.utils import is_user_authorized_for_organisation
 
 
 def create_client(

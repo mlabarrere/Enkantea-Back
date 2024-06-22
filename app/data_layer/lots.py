@@ -1,7 +1,7 @@
 from sqlmodel import Session
 from fastapi import HTTPException, status
 from app.models.lots import Lot, LotCreate, LotRead, LotUpdate
-from app.crud.utils import is_user_authorized_for_organisation
+from app.data_layer.utils import is_user_authorized_for_organisation
 
 
 def create_lot(session: Session, user_id: int, lot_create: LotCreate) -> LotRead:

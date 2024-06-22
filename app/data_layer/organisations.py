@@ -5,19 +5,18 @@ from app.models.organisations import (
     OrganisationCreate,
     OrganisationUpdate,
     OrganisationRead,
+    UserRole,
+    UserOrganisationLink
 )
-from app.models.users import User, UserRole, UserOrganisationLink
+from app.models.users import User, UserRead
 
 
-def create_organisation(
-    *, session: Session, organisation_create: OrganisationCreate
-) -> OrganisationRead:
+async def create_organisation(organisation_create: OrganisationCreate, session: Session) -> OrganisationRead:
     try:
-        db_obj = Organisation.model_validate(organisation_create)
-        session.add(db_obj)
+        session.add(organisation_create)
         session.commit()
-        session.refresh(db_obj)
-        return db_obj
+        session.refresh(organisation_create)
+        return organisation_create
     except Exception as e:
         session.rollback()
         raise HTTPException(
@@ -26,7 +25,7 @@ def create_organisation(
         )
 
 
-def update_organisation(
+async def update_organisation(
     *,
     session: Session,
     db_organisation: Organisation,
@@ -47,15 +46,11 @@ def update_organisation(
         )
 
 
-def get_organisation_by_id(
-    *, session: Session, organisation_id: int
-) -> OrganisationRead | None:
+async def get_organisation_by_id(*, session: Session, organisation_id: int) -> OrganisationRead | None:
     try:
         organisation = session.get(Organisation, organisation_id)
         if not organisation:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Organisation not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Organisation not found")
         return organisation
     except HTTPException:
         raise
@@ -66,18 +61,12 @@ def get_organisation_by_id(
         )
 
 
-def get_organisation_by_name(
-    *, session: Session, company_name: str
-) -> OrganisationRead | None:
+async def get_organisation_by_name(*, session: Session, company_name: str) -> OrganisationRead | None:
     try:
-        statement = select(Organisation).where(
-            Organisation.company_name == company_name
-        )
+        statement = select(Organisation).where(Organisation.company_name == company_name)
         organisation = session.exec(statement).first()
         if not organisation:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Organisation not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Organisation not found")
         return organisation
     except HTTPException:
         raise
@@ -88,15 +77,11 @@ def get_organisation_by_name(
         )
 
 
-def delete_organisation(
-    *, session: Session, organisation_id: int
-) -> OrganisationRead | None:
+async def delete_organisation(*, session: Session, organisation_id: int) -> OrganisationRead | None:
     try:
         db_organisation = session.get(Organisation, organisation_id)
         if not db_organisation:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Organisation not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Organisation not found")
         session.delete(db_organisation)
         session.commit()
         return db_organisation
@@ -109,10 +94,12 @@ def delete_organisation(
             detail=f"An error occurred while deleting the organisation: {str(e)}",
         )
 
+async def get_members_from_organisation(*, session: Session, organisation_id: int) -> list[UserRead]:
+    statement = select(User, UserRole).join(UserOrganisationLink).where(UserOrganisationLink.organisation_id == organisation_id)
+    return session.exec(statement).all()
 
-def add_member_to_organisation(
-    session: Session, user_id: int, organisation_id: int, role: UserRole
-) -> UserOrganisationLink:
+
+async def add_member_to_organisation(session: Session, user_id: int, organisation_id: int, role: UserRole) -> UserOrganisationLink:
     try:
         user = session.get(User, user_id)
         if not user:
@@ -155,7 +142,7 @@ def add_member_to_organisation(
         )
 
 
-def remove_member_from_organisation(
+async def remove_member_from_organisation(
     session: Session, user_id: int, organisation_id: int
 ) -> None:
     try:

@@ -5,15 +5,15 @@ from app.models.users import User, UserCreate, UserRole, UserOrganisationLink
 from app.models.clients import Client, ClientCreate, ClientUpdate
 from app.models.lots import Lot, LotCreate, LotUpdate
 from app.models.organisations import Organisation, OrganisationCreate
-from app.crud.users import create_user, add_user_to_organisation
-from app.crud.lots import create_lot
-from app.crud.clients import (
+from app.data_layer.users import create_user, add_user_to_organisation
+from app.data_layer.lots import create_lot
+from app.data_layer.clients import (
     create_client,
     get_client_by_id,
     update_client,
     delete_client,
 )
-from app.crud.organisations import create_organisation
+from app.data_layer.organisations import create_organisation
 
 DATABASE_URL = 'sqlite:///./test.db'
 engine = create_engine(DATABASE_URL, echo=False)
