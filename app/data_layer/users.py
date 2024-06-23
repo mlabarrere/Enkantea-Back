@@ -2,6 +2,7 @@ from sqlmodel import Session, select
 from app.models.users import User, UserCreate, UserRead, UserUpdate
 from app.core.exceptions import DatabaseOperationError, UserNotFoundError
 
+
 def create_user(session: Session, user_create: UserCreate) -> UserRead:
     """
     Create a new user in the database.
@@ -27,6 +28,7 @@ def create_user(session: Session, user_create: UserCreate) -> UserRead:
         session.rollback()
         raise DatabaseOperationError(f"Failed to create user: {str(e)}")
 
+
 def get_user_by_id(session: Session, user_id: int) -> UserRead:
     """
     Retrieve a user by ID.
@@ -45,6 +47,7 @@ def get_user_by_id(session: Session, user_id: int) -> UserRead:
     if not user:
         raise UserNotFoundError(f"User with id {user_id} not found")
     return UserRead.model_validate(user)
+
 
 def get_user_by_email(session: Session, email: str) -> UserRead:
     """
@@ -65,6 +68,7 @@ def get_user_by_email(session: Session, email: str) -> UserRead:
     if not user:
         raise UserNotFoundError(f"User with email {email} not found")
     return UserRead.model_validate(user)
+
 
 def update_user(session: Session, user_id: int, user_update: UserUpdate) -> UserRead:
     """
@@ -101,6 +105,7 @@ def update_user(session: Session, user_id: int, user_update: UserUpdate) -> User
         session.rollback()
         raise DatabaseOperationError(f"Failed to update user: {str(e)}")
 
+
 def delete_user(session: Session, user_id: int) -> UserRead:
     """
     Delete a user from the database.
@@ -131,6 +136,7 @@ def delete_user(session: Session, user_id: int) -> UserRead:
         session.rollback()
         raise DatabaseOperationError(f"Failed to delete user: {str(e)}")
 
+
 def get_users(session: Session, skip: int = 0, limit: int = 100) -> list[UserRead]:
     """
     Retrieve a list of users.
@@ -153,7 +159,10 @@ def get_users(session: Session, skip: int = 0, limit: int = 100) -> list[UserRea
     except Exception as e:
         raise DatabaseOperationError(f"Failed to retrieve users: {str(e)}")
 
-def get_users_by_organisation(session: Session, organisation_id: int, skip: int = 0, limit: int = 100) -> list[UserRead]:
+
+def get_users_by_organisation(
+    session: Session, organisation_id: int, skip: int = 0, limit: int = 100
+) -> list[UserRead]:
     """
     Retrieve a list of users for a specific organisation.
 
@@ -179,4 +188,6 @@ def get_users_by_organisation(session: Session, organisation_id: int, skip: int 
         users = session.exec(statement).all()
         return [UserRead.model_validate(user) for user in users]
     except Exception as e:
-        raise DatabaseOperationError(f"Failed to retrieve users for organisation: {str(e)}")
+        raise DatabaseOperationError(
+            f"Failed to retrieve users for organisation: {str(e)}"
+        )

@@ -2,6 +2,7 @@ from sqlmodel import Session, select
 from app.models.sellers import Seller, SellerCreate, SellerRead, SellerUpdate
 from app.core.exceptions import DatabaseOperationError, SellerNotFoundError
 
+
 def create_seller(session: Session, seller_create: SellerCreate) -> SellerRead:
     """
     Create a new seller in the database.
@@ -26,6 +27,7 @@ def create_seller(session: Session, seller_create: SellerCreate) -> SellerRead:
         session.rollback()
         raise DatabaseOperationError(f"Failed to create seller: {str(e)}")
 
+
 def get_seller_by_id(session: Session, seller_id: int) -> SellerRead:
     """
     Retrieve a seller by its ID.
@@ -45,7 +47,10 @@ def get_seller_by_id(session: Session, seller_id: int) -> SellerRead:
         raise SellerNotFoundError(f"Seller with id {seller_id} not found")
     return SellerRead.model_validate(seller)
 
-def update_seller(session: Session, seller_id: int, seller_update: SellerUpdate) -> SellerRead:
+
+def update_seller(
+    session: Session, seller_id: int, seller_update: SellerUpdate
+) -> SellerRead:
     """
     Update an existing seller in the database.
 
@@ -77,6 +82,7 @@ def update_seller(session: Session, seller_id: int, seller_update: SellerUpdate)
         session.rollback()
         raise DatabaseOperationError(f"Failed to update seller: {str(e)}")
 
+
 def delete_seller(session: Session, seller_id: int) -> SellerRead:
     """
     Delete a seller from the database.
@@ -105,6 +111,7 @@ def delete_seller(session: Session, seller_id: int) -> SellerRead:
         session.rollback()
         raise DatabaseOperationError(f"Failed to delete seller: {str(e)}")
 
+
 def get_sellers(session: Session, skip: int = 0, limit: int = 100) -> list[SellerRead]:
     """
     Retrieve a list of sellers.
@@ -127,7 +134,10 @@ def get_sellers(session: Session, skip: int = 0, limit: int = 100) -> list[Selle
     except Exception as e:
         raise DatabaseOperationError(f"Failed to retrieve sellers: {str(e)}")
 
-def get_sellers_by_organisation(session: Session, organisation_id: int, skip: int = 0, limit: int = 100) -> list[SellerRead]:
+
+def get_sellers_by_organisation(
+    session: Session, organisation_id: int, skip: int = 0, limit: int = 100
+) -> list[SellerRead]:
     """
     Retrieve a list of sellers for a specific organisation.
 
@@ -153,4 +163,6 @@ def get_sellers_by_organisation(session: Session, organisation_id: int, skip: in
         sellers = session.exec(statement).all()
         return [SellerRead.model_validate(seller) for seller in sellers]
     except Exception as e:
-        raise DatabaseOperationError(f"Failed to retrieve sellers for organisation: {str(e)}")
+        raise DatabaseOperationError(
+            f"Failed to retrieve sellers for organisation: {str(e)}"
+        )

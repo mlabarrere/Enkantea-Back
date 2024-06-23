@@ -74,15 +74,15 @@ class LotCreate(LotBase):
 
 class LotRead(LotBase):
     id: int
-    #seller: Optional["SellerRead"] = None
-    #sale: Optional["Sale"] = None
-    #buyer: Optional["ClientRead"] = None
+    # seller: Optional["SellerRead"] = None
+    # sale: Optional["Sale"] = None
+    # buyer: Optional["ClientRead"] = None
     organisation_id: int
     organisation: "Organisation"
 
 
 class LotUpdate(SQLModel):
-    organisation_id : int
+    organisation_id: int
     name: str | None = None
     description: str | None = None
     starting_bid: float | None = None

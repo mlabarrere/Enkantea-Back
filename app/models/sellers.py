@@ -38,6 +38,7 @@ class Seller(SellerBase, table=True):
         },
     )
 
+
 class SellerCreate(SellerBase):
     organisation_id: int | None = None
     pass

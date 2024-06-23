@@ -2,6 +2,7 @@ from sqlmodel import Session
 from app.models.lots import Lot, LotCreate, LotRead, LotUpdate
 from app.core.exceptions import DatabaseOperationError, LotNotFoundError
 
+
 def create_lot(session: Session, lot_create: LotCreate) -> LotRead:
     """
     Create a new lot in the database.
@@ -79,7 +80,6 @@ def get_lot_by_id(session: Session, lot_id: int) -> LotRead:
     return LotRead.model_validate(lot)
 
 
-
 def update_lot(session: Session, lot_id: int, lot_update: LotUpdate) -> LotRead:
     """
     Update an existing lot in the database.
@@ -114,7 +114,6 @@ def update_lot(session: Session, lot_id: int, lot_update: LotUpdate) -> LotRead:
     except Exception as e:
         session.rollback()
         raise DatabaseOperationError(f"Failed to update lot: {str(e)}")
-
 
 
 def delete_lot(session: Session, lot_id: int) -> LotRead:

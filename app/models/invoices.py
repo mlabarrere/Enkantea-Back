@@ -12,7 +12,6 @@ if TYPE_CHECKING:
     from app.models.lots import LotRead, Lot
 
 
-
 # Enum for payment status
 class PaymentStatus(str, Enum):
     PAID = "paid"
@@ -54,7 +53,6 @@ class Invoice(InvoiceBase, table=True):
     sale_id: int | None = Field(default=None, foreign_key="sale.id")
     sale: "Sale" = Relationship(back_populates="invoices")
     client: "Client" = Relationship(back_populates="invoices")
-
 
 
 class InvoiceCreate(InvoiceBase):

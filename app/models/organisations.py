@@ -18,6 +18,7 @@ class UserRole(str, Enum):
     USER = "user"
     READONLY = "readonly"
 
+
 class UserOrganisationLink(SQLModel, table=True):
     user_id: int = Field(foreign_key="user.id", primary_key=True)
     organisation_id: int = Field(foreign_key="organisation.id", primary_key=True)

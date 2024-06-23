@@ -5,7 +5,12 @@ from enum import Enum
 from app.models.users import User, UserCreate
 from app.models.clients import Client, ClientCreate, ClientUpdate, ClientRead
 from app.models.lots import Lot, LotRead, LotCreate, LotUpdate
-from app.models.organisations import Organisation, OrganisationCreate, UserRole, UserOrganisationLink
+from app.models.organisations import (
+    Organisation,
+    OrganisationCreate,
+    UserRole,
+    UserOrganisationLink,
+)
 
 if TYPE_CHECKING:
     from app.models.organisations import Organisation

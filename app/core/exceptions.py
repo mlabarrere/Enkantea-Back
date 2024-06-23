@@ -1,6 +1,3 @@
-
-
-
 class DatabaseOperationError(Exception):
     """Exception raised for errors in database operations."""
 
@@ -32,24 +29,26 @@ class UserNotFoundError(Exception):
         self.message = message
         super().__init__(self.message)
 
+
 class ClientNotFoundError(Exception):
     """Exception raised when a client is not found."""
-    
+
     def __init__(self, message: str):
         self.message = message
         super().__init__(self.message)
+
 
 class SaleNotFoundError(Exception):
     """Exception raised when a client is not found."""
-    
+
     def __init__(self, message: str):
         self.message = message
         super().__init__(self.message)
+
 
 class SellerNotFoundError(Exception):
     """Exception raised when a client is not found."""
-    
+
     def __init__(self, message: str):
         self.message = message
         super().__init__(self.message)
-

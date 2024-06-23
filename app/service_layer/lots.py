@@ -1,6 +1,10 @@
 from models.lots import LotRead, LotCreate, LotUpdate
-from models.organisations import OrganisationCreate, OrganisationRead, OrganisationUpdate
-from data_layer.lots import create_lot, read_lot ,update_lot, delete_lot 
+from models.organisations import (
+    OrganisationCreate,
+    OrganisationRead,
+    OrganisationUpdate,
+)
+from data_layer.lots import create_lot, read_lot, update_lot, delete_lot
 
 """
 Création et gestion des Lots
@@ -9,7 +13,10 @@ Création et gestion des Lots
 - Vérification que les Lots ne sont visibles que par les utilisateurs de l'Organisation propriétaire
 """
 
-async def add_lot_to_organisation(lot_to_add : LotCreate, mother_organisation : OrganisationRead) -> None :
+
+async def add_lot_to_organisation(
+    lot_to_add: LotCreate, mother_organisation: OrganisationRead
+) -> None:
     """
     Création d'un Lot associé à une Organisation spécifique.
     TODO : arbitrer si on fait l'authentification ici ou dans la partie weblayer
@@ -22,13 +29,20 @@ Relation Lots-Clients
 - Affichage des Lots associés à un Client spécifique (dans le contexte d'une Organisation)
 - Possibilité d'associer ou de dissocier un Client à un Lot
 """
-async def link_lots_to_seller(lot_to_link : list(LotUpdate), seller : SellerRead) -> LotRead | None:
+
+
+async def link_lots_to_seller(
+    lot_to_link: list(LotUpdate), seller: SellerRead
+) -> LotRead | None:
     """
     Associe une liste de lots à un vendeur
     """
     return None
 
-async def unlink_lots_from_seller(lot_to_link : list(LotUpdate), seller : SellerRead) -> LotRead | None:
+
+async def unlink_lots_from_seller(
+    lot_to_link: list(LotUpdate), seller: SellerRead
+) -> LotRead | None:
     """
     Associe une liste de lots à un vendeur
     """

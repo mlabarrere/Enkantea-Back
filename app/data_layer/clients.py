@@ -2,6 +2,7 @@ from sqlmodel import Session, select
 from app.models.clients import Client, ClientCreate, ClientRead, ClientUpdate
 from app.core.exceptions import DatabaseOperationError, ClientNotFoundError
 
+
 def create_client(session: Session, client_create: ClientCreate) -> ClientRead:
     """
     Create a new client in the database.
@@ -26,6 +27,7 @@ def create_client(session: Session, client_create: ClientCreate) -> ClientRead:
         session.rollback()
         raise DatabaseOperationError(f"Failed to create client: {str(e)}")
 
+
 def get_client_by_id(session: Session, client_id: int) -> ClientRead:
     """
     Retrieve a client by its ID.
@@ -45,7 +47,10 @@ def get_client_by_id(session: Session, client_id: int) -> ClientRead:
         raise ClientNotFoundError(f"Client with id {client_id} not found")
     return ClientRead.model_validate(client)
 
-def update_client(session: Session, client_id: int, client_update: ClientUpdate) -> ClientRead:
+
+def update_client(
+    session: Session, client_id: int, client_update: ClientUpdate
+) -> ClientRead:
     """
     Update an existing client in the database.
 
@@ -77,6 +82,7 @@ def update_client(session: Session, client_id: int, client_update: ClientUpdate)
         session.rollback()
         raise DatabaseOperationError(f"Failed to update client: {str(e)}")
 
+
 def delete_client(session: Session, client_id: int) -> ClientRead:
     """
     Delete a client from the database.
@@ -105,6 +111,7 @@ def delete_client(session: Session, client_id: int) -> ClientRead:
         session.rollback()
         raise DatabaseOperationError(f"Failed to delete client: {str(e)}")
 
+
 def get_clients(session: Session, skip: int = 0, limit: int = 100) -> list[ClientRead]:
     """
     Retrieve a list of clients.
@@ -127,7 +134,10 @@ def get_clients(session: Session, skip: int = 0, limit: int = 100) -> list[Clien
     except Exception as e:
         raise DatabaseOperationError(f"Failed to retrieve clients: {str(e)}")
 
-def get_clients_by_organisation(session: Session, organisation_id: int, skip: int = 0, limit: int = 100) -> list[ClientRead]:
+
+def get_clients_by_organisation(
+    session: Session, organisation_id: int, skip: int = 0, limit: int = 100
+) -> list[ClientRead]:
     """
     Retrieve a list of clients for a specific organisation.
 
@@ -153,4 +163,6 @@ def get_clients_by_organisation(session: Session, organisation_id: int, skip: in
         clients = session.exec(statement).all()
         return [ClientRead.model_validate(client) for client in clients]
     except Exception as e:
-        raise DatabaseOperationError(f"Failed to retrieve clients for organisation: {str(e)}")
+        raise DatabaseOperationError(
+            f"Failed to retrieve clients for organisation: {str(e)}"
+        )
