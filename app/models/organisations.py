@@ -40,9 +40,9 @@ class CompanyType(str, Enum):
 
 
 class OrganisationBase(SQLModel):
-    company_type: CompanyType | None = None
-    company_name: str | None = None
-    company_trigram: str | None = None  # Added trigram
+    organisation_type: CompanyType | None = None
+    name: str
+    trigram: str | None = None  # Added trigram
     trade_name: str | None = None
     logo: str | None = None  # URL or path to the logo file
     website: str | None = None
@@ -51,7 +51,7 @@ class OrganisationBase(SQLModel):
     share_capital: float | None = None
     start_date: datetime | None = None
     registration_date: datetime | None = None
-    headquarter_siret_number: int | None = None
+    headquarter_siret_number: str | None = None
     address: str | None = None
     postal_code: str | None = None
     city: str | None = None
@@ -70,15 +70,14 @@ class Organisation(OrganisationBase, table=True):
     sales: list["Sale"] = Relationship(back_populates="organisation")
     lots: list["Lot"] = Relationship(back_populates="organisation")
     invoices: list["Invoice"] = Relationship(back_populates="organisation")
-    # payments: list['Payment'] = Relationship(back_populates='organisation')
 
 
 class OrganisationCreate(OrganisationBase):
-    company_name: str
+    name: str
 
 
 class OrganisationRead(OrganisationBase):
-    id: int | None = None
+    id: int
     siren_number: int | None = None
     ape_code: str | None = None
     share_capital: float | None = None
@@ -96,9 +95,9 @@ class OrganisationRead(OrganisationBase):
 
 
 class OrganisationUpdate(SQLModel):
-    company_type: CompanyType | None = None
-    company_name: str | None = None
-    company_trigram: str | None = None  # Added trigram
+    organisation_type: CompanyType | None = None
+    name: str | None = None
+    trigram: str | None = None  # Added trigram
     trade_name: str | None = None
     logo: str | None = None
     website: str | None = None

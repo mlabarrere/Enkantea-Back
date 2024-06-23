@@ -9,3 +9,4 @@ pydantic-settings
 pyjwt
 psycopg[binary,pool]
 python-multipart
+pytest-postgresql

@@ -1,260 +1,171 @@
-import random
-import string
 import pytest
-from fastapi import HTTPException, status
-from fastapi.encoders import jsonable_encoder
-from fastapi.testclient import TestClient
-from sqlmodel import Session, create_engine, SQLModel, select
-from app.models.users import (
-    User,
-    UserCreate,
-    UserUpdate,
-    UserRole,
-    UserOrganisationLink,
-)
-from app.models.organisations import Organisation
-from app.models.clients import Client
-from app.models.sales import Sale
-from app.models.lots import Lot
-from app.models.invoices import Invoice
-from app.main import app
-from app.data_layer.users import (
-    create_user,
-    authenticate,
-    get_user_by_email,
-    update_user,
-    add_user_to_organisation,
-)
+from app.models.users import UserCreate, UserRead, UserUpdate
+from app.core.exceptions import UserNotFoundError
+from app.data_layer.users import create_user, get_user_by_id, get_user_by_email, update_user, delete_user, get_users, get_users_by_organisation
+from app.data_layer.organisations import create_organisation
+from app.models.organisations import OrganisationCreate
 
-
-# from app.core.security import verify_password
-
-DATABASE_URL = "sqlite:///./test.db"
-engine = create_engine(DATABASE_URL, echo=False)
-
-
-@pytest.fixture(name="session")
-def session_fixture():
-    SQLModel.metadata.create_all(engine)
-    with Session(engine) as session:
-        yield session
-    SQLModel.metadata.drop_all(engine)
-
-
-@pytest.fixture(name="client")
-def client_fixture():
-    return TestClient(app)
-
-
-def random_lower_string() -> str:
-    return "".join(random.choices(string.ascii_lowercase, k=5))
-
-
-def random_email() -> str:
-    return f"{random_lower_string()}@{random_lower_string()}.com"
-
-
-def test_create_user_with_organisation(session: Session) -> None:
-    user_data_tests = {
-        "last_name": "Pépito",  # random_lower_string(),
-        "first_name": random_lower_string(),
-        "password": random_lower_string(),
-        "email": "pepito@gmail.com",  # "email": random_email()
-    }
-    user_in = UserCreate(
-        email=user_data_tests["email"],
-        last_name=user_data_tests["last_name"],
-        first_name=user_data_tests["first_name"],
-        password=user_data_tests["password"],
+def test_create_user(db_session):
+    org_create = OrganisationCreate(name="Test Organisation")
+    org = create_organisation(session=db_session, organisation_create=org_create)
+    
+    user_create = UserCreate(
+        email="john.doe@example.com",
+        password="password123",
+        first_name="John",
+        last_name="Doe",
+        organisation_id=org.id
     )
-    user = create_user(session=session, user_create=user_in)
-    assert user.email == user_data_tests["email"]
-    assert user.first_name == user_data_tests["first_name"]
-    assert user.last_name == user_data_tests["last_name"]
-    assert hasattr(user, "password")
+    result = create_user(session=db_session, user_create=user_create)
+    
+    assert isinstance(result, UserRead)
+    assert result.email == "john.doe@example.com"
+    assert result.first_name == "John"
+    assert result.last_name == "Doe"
+    assert result.organisation_id == org.id
+    assert not hasattr(result, "password")
 
-    organisation = session.exec(
-        select(Organisation).where(
-            Organisation.company_name == f"{user.first_name} {user.last_name}"
+def test_get_user_by_id(db_session):
+    org_create = OrganisationCreate(name="Test Organisation")
+    org = create_organisation(session=db_session, organisation_create=org_create)
+    
+    user_create = UserCreate(
+        email="john.doe@example.com",
+        password="password123",
+        first_name="John",
+        last_name="Doe",
+        organisation_id=org.id
+    )
+    created_user = create_user(session=db_session, user_create=user_create)
+
+    result = get_user_by_id(session=db_session, user_id=created_user.id)
+    
+    assert isinstance(result, UserRead)
+    assert result.id == created_user.id
+    assert result.email == "john.doe@example.com"
+
+    with pytest.raises(UserNotFoundError):
+        get_user_by_id(session=db_session, user_id=9999)
+
+def test_get_user_by_email(db_session):
+    org_create = OrganisationCreate(name="Test Organisation")
+    org = create_organisation(session=db_session, organisation_create=org_create)
+    
+    user_create = UserCreate(
+        email="john.doe@example.com",
+        password="password123",
+        first_name="John",
+        last_name="Doe",
+        organisation_id=org.id
+    )
+    create_user(session=db_session, user_create=user_create)
+
+    result = get_user_by_email(session=db_session, email="john.doe@example.com")
+    
+    assert isinstance(result, UserRead)
+    assert result.email == "john.doe@example.com"
+
+    with pytest.raises(UserNotFoundError):
+        get_user_by_email(session=db_session, email="nonexistent@example.com")
+
+def test_update_user(db_session):
+    org_create = OrganisationCreate(name="Test Organisation")
+    org = create_organisation(session=db_session, organisation_create=org_create)
+    
+    user_create = UserCreate(
+        email="john.doe@example.com",
+        password="password123",
+        first_name="John",
+        last_name="Doe",
+        organisation_id=org.id
+    )
+    created_user = create_user(session=db_session, user_create=user_create)
+
+    update_data = UserUpdate(first_name="Jane", last_name="Smith")
+    result = update_user(session=db_session, user_id=created_user.id, user_update=update_data)
+    
+    assert isinstance(result, UserRead)
+    assert result.first_name == "Jane"
+    assert result.last_name == "Smith"
+    assert result.email == "john.doe@example.com"  # Unchanged
+
+    with pytest.raises(UserNotFoundError):
+        update_user(session=db_session, user_id=9999, user_update=update_data)
+
+def test_delete_user(db_session):
+    org_create = OrganisationCreate(name="Test Organisation")
+    org = create_organisation(session=db_session, organisation_create=org_create)
+    
+    user_create = UserCreate(
+        email="john.doe@example.com",
+        password="password123",
+        first_name="John",
+        last_name="Doe",
+        organisation_id=org.id
+    )
+    created_user = create_user(session=db_session, user_create=user_create)
+
+    result = delete_user(session=db_session, user_id=created_user.id)
+    
+    assert isinstance(result, UserRead)
+    assert result.email == "john.doe@example.com"
+
+    with pytest.raises(UserNotFoundError):
+        get_user_by_id(session=db_session, user_id=created_user.id)
+
+    with pytest.raises(UserNotFoundError):
+        delete_user(session=db_session, user_id=created_user.id)
+
+def test_get_users(db_session):
+    org_create = OrganisationCreate(name="Test Organisation")
+    org = create_organisation(session=db_session, organisation_create=org_create)
+    
+    for i in range(5):
+        user_create = UserCreate(
+            email=f"user{i}@example.com",
+            password="password123",
+            first_name=f"User{i}",
+            last_name="Test",
+            organisation_id=org.id
         )
-    ).first()
-    assert organisation
-    user_org_link = session.exec(
-        select(UserOrganisationLink).where(
-            UserOrganisationLink.user_id == user.id,
-            UserOrganisationLink.organisation_id == organisation.id,
+        create_user(session=db_session, user_create=user_create)
+
+    results = get_users(session=db_session, skip=0, limit=10)
+    
+    assert len(results) == 5
+    assert all(isinstance(result, UserRead) for result in results)
+
+def test_get_users_by_organisation(db_session):
+    org_create1 = OrganisationCreate(name="Test Organisation 1")
+    org1 = create_organisation(session=db_session, organisation_create=org_create1)
+    
+    org_create2 = OrganisationCreate(name="Test Organisation 2")
+    org2 = create_organisation(session=db_session, organisation_create=org_create2)
+    
+    for i in range(3):
+        user_create = UserCreate(
+            email=f"user{i}@org1.com",
+            password="password123",
+            first_name=f"User{i}",
+            last_name="Org1",
+            organisation_id=org1.id
         )
-    ).first()
-    assert user_org_link
-    assert user_org_link.role == UserRole.OWNER
+        create_user(session=db_session, user_create=user_create)
 
-
-def test_authenticate_user(session: Session) -> None:
-    """
-    Test d'authentification d'un utilisateur
-    """
-    user_data_tests = {
-        "last_name": "Pépito",  # random_lower_string(),
-        "first_name": random_lower_string(),
-        "password": random_lower_string(),
-        "email": "pepito@gmail.com",  # "email": random_email()
-    }
-    user_in = UserCreate(
-        email=user_data_tests["email"],
-        last_name=user_data_tests["last_name"],
-        first_name=user_data_tests["first_name"],
-        password=user_data_tests["password"],
-    )
-
-    _ = create_user(session=session, user_create=user_in)
-    authenticated_user = authenticate(
-        session=session,
-        email=user_data_tests["email"],
-        password=user_data_tests["password"],
-    )
-    assert authenticated_user
-    assert user_data_tests["email"] == authenticated_user.email
-
-
-def test_unkonown_user(session: Session) -> None:
-    """
-    Test d'authentification d'un utilisateur
-    """
-    email = random_email()
-    password = random_lower_string()
-    with pytest.raises(HTTPException) as excinfo:
-        authenticate(session=session, email=email, password=password)
-    assert excinfo.value.status_code == status.HTTP_404_NOT_FOUND
-
-
-def test_bad_password(session: Session) -> None:
-    """
-    Test d'authentification d'un utilisateur
-    """
-    user_data_tests = {
-        "last_name": "Pépito",  # random_lower_string(),
-        "first_name": random_lower_string(),
-        "password": random_lower_string(),
-        "email": "pepito@gmail.com",  # "email": random_email()
-    }
-    user_in = UserCreate(**user_data_tests)
-    _ = create_user(session=session, user_create=user_in)
-    with pytest.raises(HTTPException) as excinfo:
-        _ = authenticate(
-            session=session,
-            email=user_data_tests["email"],
-            password=random_lower_string(),
+    for i in range(2):
+        user_create = UserCreate(
+            email=f"user{i}@org2.com",
+            password="password123",
+            first_name=f"User{i}",
+            last_name="Org2",
+            organisation_id=org2.id
         )
-    assert excinfo.value.status_code == status.HTTP_401_UNAUTHORIZED
+        create_user(session=db_session, user_create=user_create)
 
-
-def test_get_user_by_email(session: Session) -> None:
-    """
-    Test de récupération d'un utilisateur par son email
-    """
-    user_data_tests = {
-        "last_name": "Pépito",  # random_lower_string(),
-        "first_name": random_lower_string(),
-        "password": random_lower_string(),
-        "email": "pepito@gmail.com",  # "email": random_email()
-    }
-    user_in = UserCreate(**user_data_tests)
-    _ = create_user(session=session, user_create=user_in)
-    fetched_user = get_user_by_email(session=session, email=user_data_tests["email"])
-    assert fetched_user
-    assert fetched_user.email == user_data_tests["email"]
-
-
-def test_get_user_by_email_not_found(session: Session) -> None:
-    """
-    Test de récupération d'un utilisateur par son email
-    """
-    email = random_email()
-    with pytest.raises(HTTPException) as excinfo:
-        get_user_by_email(session=session, email=email)
-    assert excinfo.value.status_code == status.HTTP_404_NOT_FOUND
-    assert "not found" in excinfo.value.detail
-
-
-def test_get_user(session: Session) -> None:
-    """
-    Test de récupération d'un utilisateur
-    """
-    password = random_lower_string()
-    email = random_email()
-    user_in = UserCreate(
-        email=email,
-        password=password,
-        last_name=random_lower_string(),
-        first_name=random_lower_string(),
-    )
-    user = create_user(session=session, user_create=user_in)
-    user_2 = session.get(User, user.id)
-    assert user_2
-    assert user.email == user_2.email
-    assert jsonable_encoder(user) == jsonable_encoder(user_2)
-
-
-def test_update_user(session: Session) -> None:
-    """
-    Test de mise à jour d'un utilisateur
-    TODO : faire l'update de mots de passes
-    """
-    # Set User
-    user_data_tests = {
-        "last_name": "Pépito",  # random_lower_string(),
-        "first_name": random_lower_string(),
-        "password": random_lower_string(),
-        "email": "pepito@gmail.com",  # "email": random_email()
-    }
-    user_in = UserCreate(**user_data_tests)
-    _ = create_user(session=session, user_create=user_in)
-
-    user = get_user_by_email(session=session, email=user_data_tests["email"])
-    assert user
-    assert user.email == user_data_tests["email"]
-
-    # Set new Password
-    new_last_name = random_lower_string()
-
-    user_in_update = UserUpdate(last_name=new_last_name, is_superuser=True)
-    if user.id is not None:
-        _ = update_user(session=session, db_user=user, user_in=user_in_update)
-
-    # Check if user is updated
-    user_2 = session.get(User, user.id)
-    assert user_2
-    assert user.id == user_2.id
-    assert user.email == user_2.email
-    assert user.password == user_2.password
-    assert user.last_name == new_last_name
-
-    # assert verify_password(plain_password=new_password, hashed_password=user_2.password)
-
-
-def test_add_user_to_existing_organisation(session: Session) -> None:
-    user_data_tests = {
-        "last_name": "Pépito",  # random_lower_string(),
-        "first_name": random_lower_string(),
-        "password": random_lower_string(),
-        "email": "pepito@gmail.com",  # "email": random_email()
-    }
-    user_in = UserCreate(**user_data_tests)
-    user = create_user(session=session, user_create=user_in)
-
-    organisation_data = {"company_name": "Test Organisation"}
-    organisation = Organisation(**organisation_data)
-    session.add(organisation)
-    session.commit()
-    session.refresh(organisation)
-
-    user_org_link = add_user_to_organisation(
-        session=session,
-        user_id=user.id,
-        organisation_id=organisation.id,
-        role=UserRole.USER,
-    )
-    assert user_org_link
-    assert user_org_link.user_id == user.id
-    assert user_org_link.organisation_id == organisation.id
-    assert user_org_link.role == UserRole.USER
+    results_org1 = get_users_by_organisation(session=db_session, organisation_id=org1.id)
+    results_org2 = get_users_by_organisation(session=db_session, organisation_id=org2.id)
+    
+    assert len(results_org1) == 3
+    assert len(results_org2) == 2
+    assert all(result.organisation_id == org1.id for result in results_org1)
+    assert all(result.organisation_id == org2.id for result in results_org2)

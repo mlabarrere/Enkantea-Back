@@ -1,369 +1,138 @@
-"""
-TODO : 
-Création de lot
-- Création réussie avec tous les champs requis
-- Tentative de création sans authentification
-- Tentative de création avec des données invalides
-- Création avec des champs optionnels
-
-
-Récupération de lot
-- Récupération d'un lot spécifique par ID
-- Récupération de tous les lots d'un utilisateur
-- Tentative de récupération d'un lot inexistant
-- Tentative de récupération d'un lot appartenant à un autre utilisateur
-
-
-Mise à jour de lot
-- Mise à jour réussie de tous les champs modifiables
-- Mise à jour partielle (seulement certains champs)
-- Tentative de mise à jour d'un lot inexistant
-- Tentative de mise à jour d'un lot appartenant à un autre utilisateur
-- Tentative de mise à jour avec des données invalides
-
-
-Suppression de lot
-- Suppression réussie d'un lot
-- Tentative de suppression d'un lot inexistant
-- Tentative de suppression d'un lot appartenant à un autre utilisateur
-
-
-Autorisation et authentification
-- Accès aux routes avec un token valide
-- Accès aux routes avec un token expiré
-- Accès aux routes sans token
-- Accès aux routes avec un token invalide
-
-
-Gestion des erreurs
-- Réponses appropriées pour chaque type d'erreur (400, 401, 403, 404, 500)
-- Messages d'erreur clairs et informatifs
-
-
-Performances
-- Temps de réponse pour chaque opération CRUD
-- Comportement sous charge (plusieurs requêtes simultanées)
-
-
-Validations des données
-- Respect des contraintes de champs (longueur, type, format)
-- Gestion des valeurs nulles ou vides pour les champs obligatoires
-
-
-Intégration avec d'autres entités
-- Liens corrects avec l'organisation associée
-- Comportement lors de la suppression d'une organisation liée
-
-
-Pagination et filtrage (si implémentés)
-- Fonctionnement correct de la pagination pour la liste des lots
-- Application correcte des filtres sur la liste des lots
-
-
-Journalisation et audit
-- Enregistrement correct des actions de création, mise à jour et suppression
-- Traçabilité des modifications
-
-
-Gestion des transactions
-- Rollback correct en cas d'erreur lors de la création ou mise à jour
-
-"""
-
 import pytest
-from sqlmodel import Session, create_engine, SQLModel, select
-from fastapi import HTTPException, status
-from datetime import datetime
-from app.models.users import User, UserCreate, UserRole, UserOrganisationLink
-from app.models.clients import Client, ClientCreate
-from app.models.lots import Lot, LotCreate, LotUpdate
-from app.models.organisations import Organisation, OrganisationCreate
-from app.data_layer.users import create_user, add_user_to_organisation
-from app.data_layer.clients import create_client
-from app.data_layer.lots import create_lot, get_lot_by_id, update_lot, delete_lot
+from app.models.lots import LotCreate, LotRead, LotUpdate
+from app.core.exceptions import DatabaseOperationError, LotNotFoundError
+from app.data_layer.lots import create_lot, create_lots_batch, get_lot_by_id, update_lot, delete_lot
 from app.data_layer.organisations import create_organisation
+from app.models.organisations import OrganisationCreate
 
-DATABASE_URL = "sqlite:///./test.db"
-engine = create_engine(DATABASE_URL, echo=False)
-
-
-@pytest.fixture(name="session")
-def session_fixture():
-    SQLModel.metadata.create_all(engine)
-    with Session(engine) as session:
-        yield session
-    SQLModel.metadata.drop_all(engine)
-
-
-def test_create_user_with_organisation(session: Session) -> None:
-    user_data = {
-        "email": "user@example.com",
-        "password": "password",
-        "first_name": "John",
-        "last_name": "Doe",
-    }
-    user_create = UserCreate(**user_data)
-    user = create_user(session=session, user_create=user_create)
-
-    # Vérification de la création de l'utilisateur
-    assert user.email == user_data["email"]
-    assert user.first_name == user_data["first_name"]
-    assert user.last_name == user_data["last_name"]
-
-    # Vérification de la création de l'organisation via la relation utilisateur
-    assert user.organisation is not None
-    organisation = user.organisation
-    organisation_name = f"{user_data['first_name']} {user_data['last_name']}"
-    assert organisation.company_name == organisation_name
-
-    # Vérification du lien entre l'utilisateur et l'organisation
-    user_org_link = session.exec(
-        select(UserOrganisationLink).where(
-            UserOrganisationLink.user_id == user.id,
-            UserOrganisationLink.organisation_id == organisation.id,
-        )
-    ).first()
-    assert user_org_link is not None
-    assert user_org_link.role == UserRole.OWNER
-
-
-def test_create_lot_with_organisation(session: Session) -> None:
-    user_data = {
-        "email": "user@example.com",
-        "password": "password",
-        "first_name": "John",
-        "last_name": "Doe",
-    }
-    user_create = UserCreate(**user_data)
-    user = create_user(session=session, user_create=user_create)
-
-    # Accès à l'organisation via l'utilisateur
-    organisation = user.organisation
-
-    client_data = {
-        "first_name": "Client",
-        "last_name": "Test",
-        "organisation_id": organisation.id,
-    }
-    client_create = ClientCreate(**client_data)
-    client = create_client(
-        session=session, user_id=user.id, client_create=client_create
-    )
-
-    lot_data = {
-        "name": "Test Lot",
-        "description": "Test Description",
-        "starting_bid": 100.0,
-        "organisation_id": organisation.id,
-        "seller_id": client.id,
-    }
-    lot_create = LotCreate(**lot_data)
-    lot = create_lot(session=session, user_id=user.id, lot_create=lot_create)
-
-    # Vérification de la création du lot
-    assert lot.name == lot_data["name"]
-    assert lot.description == lot_data["description"]
-    assert lot.organisation_id == organisation.id
-
-
-def test_create_lot_in_different_organisations(session: Session) -> None:
-    # Création de l'utilisateur et de la première organisation
-    user_data = {
-        "email": "user@example.com",
-        "password": "password",
-        "first_name": "John",
-        "last_name": "Doe",
-    }
-    user_create = UserCreate(**user_data)
-    user = create_user(session=session, user_create=user_create)
-
-    # Création de la deuxième organisation
-    organisation_data = {"company_name": "Second Organisation"}
-    organisation_create = OrganisationCreate(**organisation_data)
-    organisation2 = create_organisation(
-        session=session, organisation_create=organisation_create
-    )
-    add_user_to_organisation(
-        session=session,
-        user_id=user.id,
-        organisation_id=organisation2.id,
-        role=UserRole.ADMIN,
-    )
-
-    # Création d'un client dans la deuxième organisation
-    client_data = {
-        "first_name": "Client",
-        "last_name": "Test",
-        "organisation_id": organisation2.id,
-    }
-    client_create = ClientCreate(**client_data)
-    client = create_client(
-        session=session, user_id=user.id, client_create=client_create
-    )
-
-    # Création d'un lot dans la deuxième organisation
-    lot_data = {
-        "name": "Test Lot",
-        "description": "Test Description",
-        "starting_bid": 100.0,
-        "organisation_id": organisation2.id,
-        "seller_id": client.id,
-    }
-    lot_create = LotCreate(**lot_data)
-    lot = create_lot(session=session, user_id=user.id, lot_create=lot_create)
-
-    # Vérification de la création du lot dans la deuxième organisation
-    assert lot.name == lot_data["name"]
-    assert lot.description == lot_data["description"]
-    assert lot.organisation_id == organisation2.id
-
-
-def test_user_cannot_create_lot_in_unassigned_organisation(session: Session) -> None:
+def test_create_lot(db_session):
+    org_create = OrganisationCreate(name="Test Organisation")
+    org = create_organisation(session=db_session, organisation_create=org_create)
     
-    # Etape 1 : Créer usager dans première organisation
-    user_data = {
-        "email": "user@example.com",
-        "password": "password",
-        "first_name": "John",
-        "last_name": "Doe",
-    }
-    user_create = UserCreate(**user_data)
-    user = create_user(session=session, user_create=user_create)
-    assert user.email == user_data["email"]
-    assert user.organisation is not None
-    assert user.organisation.company_name == f"{user_data['first_name']} {user_data['last_name']}"
-    assert len(user.organisation.users)== 1
-    assert len(user.organisation.clients) == 0
-    assert len(user.organisation.lots) == 0
-
-    # Etape 2 : Créer organisation sans ajouter d'utilisateur
-    organisation_data = {"company_name": "Second Organisation"}
-    organisation_create = OrganisationCreate(**organisation_data)
-    organisation2 = create_organisation(
-        session=session, organisation_create=organisation_create
+    # Test création de lot standard
+    lot_create = LotCreate(
+        name="Test Lot",
+        description="A test lot",
+        organisation_id=org.id
     )
-    assert organisation2.company_name == organisation_data["company_name"]
-    assert len(organisation2.users) == 0
-    assert len(organisation2.clients) == 0
-    assert len(organisation2.lots) == 0
-    assert user.organisation != organisation2
+    result = create_lot(db_session, lot_create)
+    
+    assert isinstance(result, LotRead)
+    assert result.name == "Test Lot"
+    assert result.description == "A test lot"
+    assert result.organisation_id == org.id
 
-    # Etape 3 : Création d'un client dans la deuxième organisation avec l'user de l'autre orga 
-    client_data = {
-        "first_name": "Client",
-        "last_name": "Test",
-        "organisation_id": organisation2.id,
-    }
-    client_create = ClientCreate(**client_data)
-    with pytest.raises(HTTPException) as excinfo:
-        _ = create_client(
-            session=session, user_id=user.id, client_create=client_create
-        )
-    assert excinfo.value.status_code == status.HTTP_403_FORBIDDEN
-
-    # Tentative de création d'un lot dans la deuxième organisation
-    lot_data = {
-        "name": "Test Lot",
-        "description": "Test Description",
-        "starting_bid": 100.0,
-        "organisation_id": organisation2.id,
-        "seller_id": 1,
-    }
-    lot_create = LotCreate(**lot_data)
-    with pytest.raises(HTTPException) as excinfo:
-        create_lot(session=session, user_id=user.id, lot_create=lot_create)
-
-    # Vérification de l'exception
-    assert excinfo.value.status_code == status.HTTP_403_FORBIDDEN
-
-
-def test_update_lot(session: Session) -> None:
-    """
-    Test updating a lot's details.
-    """
-    user_data = {
-        "email": "user@example.com",
-        "password": "password",
-        "first_name": "John",
-        "last_name": "Doe",
-    }
-    user_create = UserCreate(**user_data)
-    user = create_user(session=session, user_create=user_create)
-
-    # Accès à l'organisation via l'utilisateur
-    organisation = user.organisation
-
-    client_data = {
-        "first_name": "Client",
-        "last_name": "Test",
-        "organisation_id": organisation.id,
-    }
-    client_create = ClientCreate(**client_data)
-    client = create_client(
-        session=session, user_id=user.id, client_create=client_create
+    # Test création d'un lot avec le même nom (doublon)
+    duplicate_lot = LotCreate(
+        name="Test Lot",
+        description="A duplicate lot",
+        organisation_id=org.id
     )
+    duplicate = create_lot(db_session, duplicate_lot)
+    assert duplicate.name == "Test Lot"
+    assert duplicate.description == "A duplicate lot"
+    assert duplicate.organisation_id == org.id
+    assert result.id != duplicate.id
 
-    lot_data = {
-        "name": "Test Lot",
-        "description": "Test Description",
-        "starting_bid": 100.0,
-        "organisation_id": organisation.id,
-        "seller_id": client.id,
-    }
-    lot_create = LotCreate(**lot_data)
-    created_lot = create_lot(session=session, user_id=user.id, lot_create=lot_create)
-
-    update_data = {"name": "Updated Lot", "description": "Updated Description"}
-    lot_update = LotUpdate(**update_data)
-    updated_lot = update_lot(
-        session=session, user_id=user.id, lot_id=created_lot.id, lot_update=lot_update
+    # Test création d'un lot avec des caractères spéciaux dans le nom
+    special_char_lot = LotCreate(
+        name="Test Lot #$%^&*",
+        description="Lot with special characters",
+        organisation_id=org.id
     )
+    special_result = create_lot(db_session, special_char_lot)
+    assert special_result.name == "Test Lot #$%^&*"
 
-    # Vérification de la mise à jour du lot
-    assert updated_lot.name == update_data["name"]
-    assert updated_lot.description == update_data["description"]
-
-
-def test_delete_lot(session: Session) -> None:
-    """
-    Test deleting a lot.
-    """
-    user_data = {
-        "email": "user@example.com",
-        "password": "password",
-        "first_name": "John",
-        "last_name": "Doe",
-    }
-    user_create = UserCreate(**user_data)
-    user = create_user(session=session, user_create=user_create)
-
-    # Accès à l'organisation via l'utilisateur
-    organisation = user.organisation
-
-    client_data = {
-        "first_name": "Client",
-        "last_name": "Test",
-        "organisation_id": organisation.id,
-    }
-    client_create = ClientCreate(**client_data)
-    client = create_client(
-        session=session, user_id=user.id, client_create=client_create
+    # Test création d'un lot avec une très longue description
+    long_desc_lot = LotCreate(
+        name="Long Description Lot",
+        description="A" * 1000,  # 1000 caractères
+        organisation_id=org.id
     )
+    long_result = create_lot(db_session, long_desc_lot)
+    assert long_result.description == "A" * 1000
 
-    lot_data = {
-        "name": "Test Lot",
-        "description": "Test Description",
-        "starting_bid": 100.0,
-        "organisation_id": organisation.id,
-        "seller_id": client.id,
-    }
-    lot_create = LotCreate(**lot_data)
-    created_lot = create_lot(session=session, user_id=user.id, lot_create=lot_create)
+def test_create_lot_error(db_session):
+    # Test création d'un lot avec un nom vide
+    with pytest.raises(DatabaseOperationError):
+        create_lot(db_session, LotCreate(name="", organisation_id=1))
+    
+    # Test création d'un lot avec une organisation inexistante
+    with pytest.raises(DatabaseOperationError):
+        create_lot(db_session, LotCreate(name="Invalid Org", organisation_id=999))
 
-    deleted_lot = delete_lot(session=session, user_id=user.id, lot_id=created_lot.id)
+    # Test potentielle injection SQL dans le nom
+    with pytest.raises(DatabaseOperationError):
+        create_lot(db_session, LotCreate(name="Test'; DROP TABLE lots; --", organisation_id=1))
 
-    # Vérification de la suppression du lot
-    assert deleted_lot.id == created_lot.id
-    with pytest.raises(HTTPException) as excinfo:
-        get_lot_by_id(session=session, user_id=user.id, lot_id=created_lot.id)
-    assert excinfo.value.status_code == status.HTTP_404_NOT_FOUND
+def test_create_lots_batch(db_session):
+    org_create = OrganisationCreate(name="Test Organisation")
+    org = create_organisation(session=db_session, organisation_create=org_create)
+    
+    # Test création en batch standard
+    lots_create = [
+        LotCreate(name="Lot 1", description="First lot", organisation_id=org.id),
+        LotCreate(name="Lot 2", description="Second lot", organisation_id=org.id)
+    ]
+    results = create_lots_batch(db_session, lots_create)
+    
+    assert len(results) == 2
+    assert all(isinstance(result, LotRead) for result in results)
+    assert results[0].name == "Lot 1"
+    assert results[1].name == "Lot 2"
+
+
+    # Test création en batch avec un très grand nombre de lots
+    many_lots = [LotCreate(name=f"Lot {i}", organisation_id=org.id) for i in range(1000)]
+    many_results = create_lots_batch(db_session, many_lots)
+    assert len(many_results) == 1000
+
+def test_get_lot_by_id(db_session):
+    org_create = OrganisationCreate(name="Test Organisation")
+    org = create_organisation(session=db_session, organisation_create=org_create)
+    
+    lot_create = LotCreate(name="Test Lot", description="A test lot", organisation_id=org.id)
+    created_lot = create_lot(db_session, lot_create)
+
+    result = get_lot_by_id(db_session, created_lot.id)
+    
+    assert isinstance(result, LotRead)
+    assert result.name == "Test Lot"
+
+    # Test récupération avec un ID négatif
+    with pytest.raises(LotNotFoundError):
+        get_lot_by_id(db_session, -1)
+
+def test_update_lot(db_session):
+    org_create = OrganisationCreate(name="Test Organisation")
+    org = create_organisation(session=db_session, organisation_create=org_create)
+    
+    lot_create = LotCreate(name="Original Lot", description="Original description", organisation_id=org.id)
+    created_lot = create_lot(db_session, lot_create)
+
+    # Test mise à jour standard
+    update_data = LotUpdate(name="Updated Lot", organisation_id=org.id)
+    result = update_lot(db_session, created_lot.id, update_data)
+    
+    assert isinstance(result, LotRead)
+    assert result.name == "Updated Lot"
+    assert result.description == "Original description"
+
+def test_delete_lot(db_session):
+    org_create = OrganisationCreate(name="Test Organisation")
+    org = create_organisation(session=db_session, organisation_create=org_create)
+    
+    lot_create = LotCreate(name="To Delete", description="This lot will be deleted", organisation_id=org.id)
+    created_lot = create_lot(db_session, lot_create)
+
+    result = delete_lot(db_session, created_lot.id)
+    
+    assert isinstance(result, LotRead)
+    assert result.name == "To Delete"
+
+    with pytest.raises(LotNotFoundError):
+        get_lot_by_id(db_session, created_lot.id)
+
+    # Test suppression d'un lot déjà supprimé
+    with pytest.raises(LotNotFoundError):
+        delete_lot(db_session, created_lot.id)

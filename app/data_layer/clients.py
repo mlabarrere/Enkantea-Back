@@ -1,167 +1,156 @@
 from sqlmodel import Session, select
-from fastapi import HTTPException, status
 from app.models.clients import Client, ClientCreate, ClientRead, ClientUpdate
-from app.models.lots import Lot
-from app.data_layer.utils import is_user_authorized_for_organisation
+from app.core.exceptions import DatabaseOperationError, ClientNotFoundError
 
-
-def create_client(
-    session: Session, user_id: int, client_create: ClientCreate
-) -> ClientRead:
+def create_client(session: Session, client_create: ClientCreate) -> ClientRead:
     """
     Create a new client in the database.
 
     Args:
         session (Session): The database session.
-        user_id (int): The ID of the user creating the client.
         client_create (ClientCreate): The client data to create.
 
     Returns:
         ClientRead: The created client data.
 
     Raises:
-        HTTPException: If an error occurs during client creation or if the user is not authorized.
+        DatabaseOperationError: If an error occurs during client creation.
     """
-    if not is_user_authorized_for_organisation(
-        session, user_id, client_create.organisation_id
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User is not authorized to create clients for this organisation.",
-        )
-
     try:
         client = Client.model_validate(client_create)
         session.add(client)
         session.commit()
         session.refresh(client)
-        return client
+        return ClientRead.model_validate(client)
     except Exception as e:
         session.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An error occurred while creating the client: {str(e)}",
-        )
+        raise DatabaseOperationError(f"Failed to create client: {str(e)}")
 
-
-def get_client_by_id(session: Session, user_id: int, client_id: int) -> ClientRead:
+def get_client_by_id(session: Session, client_id: int) -> ClientRead:
     """
     Retrieve a client by its ID.
 
     Args:
         session (Session): The database session.
-        user_id (int): The ID of the user retrieving the client.
         client_id (int): The ID of the client to retrieve.
 
     Returns:
         ClientRead: The retrieved client data.
 
     Raises:
-        HTTPException: If the client is not found or if the user is not authorized.
+        ClientNotFoundError: If the client is not found.
     """
     client = session.get(Client, client_id)
     if not client:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Client not found"
-        )
+        raise ClientNotFoundError(f"Client with id {client_id} not found")
+    return ClientRead.model_validate(client)
 
-    if not is_user_authorized_for_organisation(
-        session, user_id, client.organisation_id
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User is not authorized to access this client.",
-        )
-
-    return client
-
-
-def update_client(
-    session: Session, user_id: int, client_id: int, client_update: dict
-) -> ClientRead:
+def update_client(session: Session, client_id: int, client_update: ClientUpdate) -> ClientRead:
     """
     Update an existing client in the database.
+
     Args:
         session (Session): The database session.
-        user_id (int): The ID of the user updating the client.
         client_id (int): The ID of the client to update.
         client_update (ClientUpdate): The updated client data.
+
     Returns:
         ClientRead: The updated client data.
+
     Raises:
-        HTTPException: If the client is not found or if the user is not authorized.
+        ClientNotFoundError: If the client is not found.
+        DatabaseOperationError: If an error occurs during the update operation.
     """
     client = session.get(Client, client_id)
     if not client:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Client not found"
-        )
-    if not is_user_authorized_for_organisation(
-        session, user_id, client.organisation_id
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User is not authorized to update this client.",
-        )
+        raise ClientNotFoundError(f"Client with id {client_id} not found")
+
     try:
-        #update_data = client_update.dict(exclude_unset=True)
-        for key, value in client_update.items():
+        client_data = client_update.model_dump(exclude_unset=True)
+        for key, value in client_data.items():
             setattr(client, key, value)
+        session.add(client)
         session.commit()
         session.refresh(client)
-        return client
+        return ClientRead.model_validate(client)
     except Exception as e:
         session.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An error occurred while updating the client: {str(e)}",
-        )
+        raise DatabaseOperationError(f"Failed to update client: {str(e)}")
 
-def delete_client(session: Session, user_id: int, client_id: int) -> ClientRead:
+def delete_client(session: Session, client_id: int) -> ClientRead:
     """
     Delete a client from the database.
 
     Args:
         session (Session): The database session.
-        user_id (int): The ID of the user deleting the client.
         client_id (int): The ID of the client to delete.
 
     Returns:
         ClientRead: The deleted client data.
 
     Raises:
-        HTTPException: If the client is not found, has associated lots, or if the user is not authorized.
+        ClientNotFoundError: If the client is not found.
+        DatabaseOperationError: If an error occurs during the delete operation.
     """
+    client = session.get(Client, client_id)
+    if not client:
+        raise ClientNotFoundError(f"Client with id {client_id} not found")
+
     try:
-        client = session.get(Client, client_id)
-        if not client:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Client not found"
-            )
-
-        if not is_user_authorized_for_organisation(
-            session, user_id, client.organisation_id
-        ):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="User is not authorized to delete this client.",
-            )
-
-        if (
-            session.exec(select(Lot).where(Lot.seller_id == client_id)).first()
-            or session.exec(select(Lot).where(Lot.buyer_id == client_id)).first()
-        ):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Cannot delete client with associated lots.",
-            )
-
+        deleted_client = ClientRead.model_validate(client)
         session.delete(client)
         session.commit()
-        return client
+        return deleted_client
     except Exception as e:
         session.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An error occurred while deleting the client: {str(e)}",
+        raise DatabaseOperationError(f"Failed to delete client: {str(e)}")
+
+def get_clients(session: Session, skip: int = 0, limit: int = 100) -> list[ClientRead]:
+    """
+    Retrieve a list of clients.
+
+    Args:
+        session (Session): The database session.
+        skip (int): The number of clients to skip (for pagination).
+        limit (int): The maximum number of clients to return.
+
+    Returns:
+        list[ClientRead]: A list of retrieved clients.
+
+    Raises:
+        DatabaseOperationError: If an error occurs during the retrieval operation.
+    """
+    try:
+        statement = select(Client).offset(skip).limit(limit)
+        clients = session.exec(statement).all()
+        return [ClientRead.model_validate(client) for client in clients]
+    except Exception as e:
+        raise DatabaseOperationError(f"Failed to retrieve clients: {str(e)}")
+
+def get_clients_by_organisation(session: Session, organisation_id: int, skip: int = 0, limit: int = 100) -> list[ClientRead]:
+    """
+    Retrieve a list of clients for a specific organisation.
+
+    Args:
+        session (Session): The database session.
+        organisation_id (int): The ID of the organisation.
+        skip (int): The number of clients to skip (for pagination).
+        limit (int): The maximum number of clients to return.
+
+    Returns:
+        list[ClientRead]: A list of retrieved clients for the specified organisation.
+
+    Raises:
+        DatabaseOperationError: If an error occurs during the retrieval operation.
+    """
+    try:
+        statement = (
+            select(Client)
+            .where(Client.organisation_id == organisation_id)
+            .offset(skip)
+            .limit(limit)
         )
+        clients = session.exec(statement).all()
+        return [ClientRead.model_validate(client) for client in clients]
+    except Exception as e:
+        raise DatabaseOperationError(f"Failed to retrieve clients for organisation: {str(e)}")
