@@ -1,157 +1,182 @@
-from sqlmodel import select, Session
-from fastapi import HTTPException, status
-from app.models.users import (
-    User,
-    UserCreate,
-    UserUpdate,
-    UserRead,
-    UserOrganisationLink,
-    UserRole,
-)
-from app.models.organisations import Organisation, OrganisationCreate
-from app.core.security import get_password_hash, verify_password
+from sqlmodel import Session, select
+from app.models.users import User, UserCreate, UserRead, UserUpdate
+from app.core.exceptions import DatabaseOperationError, UserNotFoundError
 
+def create_user(session: Session, user_create: UserCreate) -> UserRead:
+    """
+    Create a new user in the database.
 
-def create_user(*, session: Session, user_create: UserCreate) -> UserRead:
-    user_data = user_create.model_dump(exclude_unset=False)
-    # Vérifier si l'utilisateur existe déjà
-    statement = select(User).where(User.email == user_create)
-    # Créer l'organisation
-    organisation_create = OrganisationCreate(
-        company_name=f"{user_data['first_name']} {user_data['last_name']}"
-    )
-    organisation = Organisation.model_validate(obj=organisation_create)
-    session.add(organisation)
-    session.commit()
-    session.refresh(organisation)
+    Args:
+        session (Session): The database session.
+        user_create (UserCreate): The user data to create.
 
-    # Créer l'utilisateur
-    db_user = User.model_validate(obj=user_create)
-    db_user.organisation_id = organisation.id
-    db_user.password = get_password_hash(user_create.password)
-    session.add(db_user)
-    session.commit()
-    session.refresh(db_user)
+    Returns:
+        UserRead: The created user data.
 
-    # Lier l'utilisateur à l'organisation avec le rôle OWNER
-    user_org_link = UserOrganisationLink(
-        user_id=db_user.id, organisation_id=organisation.id, role=UserRole.OWNER
-    )
-    session.add(user_org_link)
-    session.commit()
-    session.refresh(user_org_link)
-
-    return db_user
-
-
-def update_user(*, session: Session, db_user: User, user_in: UserUpdate) -> UserRead:
+    Raises:
+        DatabaseOperationError: If an error occurs during user creation.
+    """
     try:
-        user_data = user_in.model_dump(exclude_unset=True)
-        if "password" in user_data.keys():
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Password cannot be updated",
-            )
+        user_data = user_create.model_dump()
+        db_user = User(**user_data)
+        session.add(db_user)
+        session.commit()
+        session.refresh(db_user)
+        return UserRead.model_validate(db_user)
+    except Exception as e:
+        session.rollback()
+        raise DatabaseOperationError(f"Failed to create user: {str(e)}")
+
+def get_user_by_id(session: Session, user_id: int) -> UserRead:
+    """
+    Retrieve a user by ID.
+
+    Args:
+        session (Session): The database session.
+        user_id (int): The ID of the user to retrieve.
+
+    Returns:
+        UserRead: The retrieved user data.
+
+    Raises:
+        UserNotFoundError: If the user is not found.
+    """
+    user = session.get(User, user_id)
+    if not user:
+        raise UserNotFoundError(f"User with id {user_id} not found")
+    return UserRead.model_validate(user)
+
+def get_user_by_email(session: Session, email: str) -> UserRead:
+    """
+    Retrieve a user by email.
+
+    Args:
+        session (Session): The database session.
+        email (str): The email of the user to retrieve.
+
+    Returns:
+        UserRead: The retrieved user data.
+
+    Raises:
+        UserNotFoundError: If the user is not found.
+    """
+    statement = select(User).where(User.email == email)
+    user = session.exec(statement).first()
+    if not user:
+        raise UserNotFoundError(f"User with email {email} not found")
+    return UserRead.model_validate(user)
+
+def update_user(session: Session, user_id: int, user_update: UserUpdate) -> UserRead:
+    """
+    Update an existing user in the database.
+
+    Args:
+        session (Session): The database session.
+        user_id (int): The ID of the user to update.
+        user_update (UserUpdate): The updated user data.
+
+    Returns:
+        UserRead: The updated user data.
+
+    Raises:
+        UserNotFoundError: If the user is not found.
+        DatabaseOperationError: If an error occurs during the update operation.
+    """
+    try:
+        db_user = session.get(User, user_id)
+        if not db_user:
+            raise UserNotFoundError(f"User with id {user_id} not found")
+
+        user_data = user_update.model_dump(exclude_unset=True)
         for key, value in user_data.items():
             setattr(db_user, key, value)
 
         session.add(db_user)
         session.commit()
         session.refresh(db_user)
-        return db_user
+        return UserRead.model_validate(db_user)
+    except UserNotFoundError:
+        raise
     except Exception as e:
         session.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An error occurred while updating the user: {str(e)}",
-        )
+        raise DatabaseOperationError(f"Failed to update user: {str(e)}")
 
+def delete_user(session: Session, user_id: int) -> UserRead:
+    """
+    Delete a user from the database.
 
-def get_user_by_email(*, session: Session, email: str) -> UserRead | None:
+    Args:
+        session (Session): The database session.
+        user_id (int): The ID of the user to delete.
+
+    Returns:
+        UserRead: The deleted user data.
+
+    Raises:
+        UserNotFoundError: If the user is not found.
+        DatabaseOperationError: If an error occurs during the delete operation.
+    """
     try:
-        statement = select(User).where(User.email == email)
-        session_user = session.exec(statement).first()
-        if not session_user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"User with email {email} not found.",
-            )
-        return session_user
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An error occurred while fetching the user: {str(e)}",
-        )
+        db_user = session.get(User, user_id)
+        if not db_user:
+            raise UserNotFoundError(f"User with id {user_id} not found")
 
-
-def authenticate(session: Session, email: str, password: str) -> UserRead | None:
-    try:
-        db_user = get_user_by_email(session=session, email=email)
-        if not db_user or not verify_password(
-            plain_password=password, hashed_password=db_user.password
-        ):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid password"
-            )
-        return db_user
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An unexpected error occurred",
-        ) from e
-
-
-def add_user_to_organisation(
-    *, session: Session, user_id: int, organisation_id: int, role: UserRole
-) -> UserOrganisationLink:
-    try:
-        # Fetch the user
-        user = session.get(User, user_id)
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
-            )
-
-        # Fetch the organisation
-        organisation = session.get(Organisation, organisation_id)
-        if not organisation:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Organisation not found"
-            )
-
-        # Check if user is already a member of the organisation
-        statement = select(UserOrganisationLink).where(
-            UserOrganisationLink.user_id == user_id,
-            UserOrganisationLink.organisation_id == organisation_id,
-        )
-        existing_link = session.exec(statement).first()
-        if existing_link:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="User is already a member of this organisation",
-            )
-
-        # Create the link between user and organisation
-        user_org_link = UserOrganisationLink(
-            user_id=user_id, organisation_id=organisation_id, role=role
-        )
-        session.add(user_org_link)
+        deleted_user = UserRead.model_validate(db_user)
+        session.delete(db_user)
         session.commit()
-        session.refresh(user_org_link)
-
-        return user_org_link
-
-    except HTTPException as e:
-        # Re-raise known HTTP exceptions
-        raise e
+        return deleted_user
+    except UserNotFoundError:
+        raise
     except Exception as e:
-        # Rollback session on any other exception
         session.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An unexpected error occurred: {str(e)}",
-        ) from e
+        raise DatabaseOperationError(f"Failed to delete user: {str(e)}")
+
+def get_users(session: Session, skip: int = 0, limit: int = 100) -> list[UserRead]:
+    """
+    Retrieve a list of users.
+
+    Args:
+        session (Session): The database session.
+        skip (int): The number of users to skip (for pagination).
+        limit (int): The maximum number of users to return.
+
+    Returns:
+        list[UserRead]: A list of retrieved users.
+
+    Raises:
+        DatabaseOperationError: If an error occurs during the retrieval operation.
+    """
+    try:
+        statement = select(User).offset(skip).limit(limit)
+        users = session.exec(statement).all()
+        return [UserRead.model_validate(user) for user in users]
+    except Exception as e:
+        raise DatabaseOperationError(f"Failed to retrieve users: {str(e)}")
+
+def get_users_by_organisation(session: Session, organisation_id: int, skip: int = 0, limit: int = 100) -> list[UserRead]:
+    """
+    Retrieve a list of users for a specific organisation.
+
+    Args:
+        session (Session): The database session.
+        organisation_id (int): The ID of the organisation.
+        skip (int): The number of users to skip (for pagination).
+        limit (int): The maximum number of users to return.
+
+    Returns:
+        list[UserRead]: A list of retrieved users for the specified organisation.
+
+    Raises:
+        DatabaseOperationError: If an error occurs during the retrieval operation.
+    """
+    try:
+        statement = (
+            select(User)
+            .where(User.organisation_id == organisation_id)
+            .offset(skip)
+            .limit(limit)
+        )
+        users = session.exec(statement).all()
+        return [UserRead.model_validate(user) for user in users]
+    except Exception as e:
+        raise DatabaseOperationError(f"Failed to retrieve users for organisation: {str(e)}")

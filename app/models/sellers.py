@@ -5,7 +5,6 @@ from datetime import datetime
 if TYPE_CHECKING:
     from app.models.organisations import Organisation
     from app.models.lots import Lot
-    from app.models.invoices import Invoice
 
 
 class SellerBase(SQLModel):
@@ -26,7 +25,7 @@ class Seller(SellerBase, table=True):
     id: int = Field(default=None, primary_key=True)
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
-    lots_sell: list["Lot"] | None = Relationship(
+    lots: list["Lot"] | None = Relationship(
         back_populates="seller",
         sa_relationship_kwargs={"foreign_keys": "Lot.seller_id", "lazy": "selectin"},
     )
@@ -38,14 +37,6 @@ class Seller(SellerBase, table=True):
             "lazy": "selectin",
         },
     )
-    invoices: list["Invoice"] | None = Relationship(
-        back_populates="seller",
-        sa_relationship_kwargs={
-            "foreign_keys": "Invoice.seller_id",
-            "lazy": "selectin",
-        },
-    )
-
 
 class SellerCreate(SellerBase):
     organisation_id: int | None = None
@@ -60,7 +51,8 @@ class SellerRead(SellerBase):
 
 
 class SellerUpdate(SQLModel):
-    name: str | None = None
+    first_name: str | None = None
+    last_name: str | None = None
     email: str | None = None
     phone: str | None = None
     address: str | None = None
