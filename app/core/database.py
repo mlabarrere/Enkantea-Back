@@ -3,13 +3,13 @@ from contextlib import contextmanager
 from sqlmodel import SQLModel, Session, create_engine
 
 # Import all models
-from app.models.clients import Client
-from app.models.invoices import Invoice
-from app.models.lots import Lot
-from app.models.organisations import Organisation
-from app.models.sales import Sale
-from app.models.sellers import Seller
-from app.models.users import User
+from app.models.clients import Client  # noqa: F401
+from app.models.invoices import Invoice  # noqa: F401
+from app.models.lots import Lot  # noqa: F401
+from app.models.organisations import Organisation  # noqa: F401
+from app.models.sales import Sale  # noqa: F401
+from app.models.sellers import Seller  # noqa: F401
+from app.models.users import User  # noqa: F401
 
 engine = create_engine(settings.DATABASE_URL)
 
