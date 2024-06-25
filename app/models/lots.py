@@ -5,9 +5,9 @@ from datetime import datetime
 if TYPE_CHECKING:
     from app.models.organisations import Organisation
     from app.models.sales import Sale
-    from app.models.clients import Client, ClientRead
+    from app.models.clients import Client
     from app.models.invoices import Invoice
-    from app.models.sellers import Seller, SellerRead
+    from app.models.sellers import Seller
 
 
 class LotBase(SQLModel):
