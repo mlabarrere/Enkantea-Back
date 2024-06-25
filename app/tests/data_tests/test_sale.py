@@ -1,175 +1,174 @@
 import pytest
-from sqlmodel import Session, create_engine, SQLModel, select
-from fastapi import HTTPException, status
 from datetime import datetime, timezone
-from app.models.users import User, UserCreate, UserRole, UserOrganisationLink
-from app.models.clients import Client, ClientCreate
-from app.models.lots import Lot, LotCreate, LotUpdate, LotRead
-from app.models.organisations import Organisation, OrganisationCreate
-from app.models.sales import Sale, SaleCreate, SaleUpdate
-from app.data_layer.users import create_user, add_user_to_organisation
-from app.data_layer.clients import create_client
-from app.data_layer.lots import create_lot
-from app.data_layer.sales import create_sale, get_sale_by_id, update_sale, delete_sale
+from app.models.sales import SaleCreate, SaleRead, SaleUpdate
+from app.core.exceptions import SaleNotFoundError
+from app.data_layer.sales import (
+    create_sale,
+    get_sale_by_id,
+    update_sale,
+    delete_sale,
+    get_sales,
+    get_sales_by_organisation,
+)
 from app.data_layer.organisations import create_organisation
-
-DATABASE_URL = "sqlite:///./test.db"
-engine = create_engine(DATABASE_URL, echo=False)
+from app.models.organisations import OrganisationCreate
 
 
-@pytest.fixture(name="session")
-def session_fixture():
-    SQLModel.metadata.create_all(engine)
-    with Session(engine) as session:
-        yield session
-    SQLModel.metadata.drop_all(engine)
+def test_create_sale():
+    org_create = OrganisationCreate(name="Test Organisation")
+    org = create_organisation(organisation_create=org_create)
+
+    sale_create = SaleCreate(
+        number=1,
+        title="Test Sale",
+        description="Test Description",
+        start_datetime=datetime.now(timezone.utc),
+        end_datetime=datetime.now(timezone.utc),
+        organisation_id=org.id,
+    )
+    result = create_sale(sale_create=sale_create)
+
+    assert isinstance(result, SaleRead)
+    assert result.title == "Test Sale"
+    assert result.description == "Test Description"
+    assert result.organisation_id == org.id
 
 
-def test_create_sale(session: Session) -> None:
-    """
-    Test the creation of a sale.
-    """
-    user_data = {
-        "email": "user@example.com",
-        "password": "password",
-        "first_name": "John",
-        "last_name": "Doe",
-    }
-    user_create = UserCreate(**user_data)
-    user = create_user(session=session, user_create=user_create)
+def test_get_sale_by_id():
+    org_create = OrganisationCreate(name="Test Organisation")
+    org = create_organisation(organisation_create=org_create)
 
-    organisation = user.organisation
+    sale_create = SaleCreate(
+        number=1,
+        title="Test Sale",
+        description="Test Description",
+        start_datetime=datetime.now(timezone.utc),
+        end_datetime=datetime.now(timezone.utc),
+        organisation_id=org.id,
+    )
+    created_sale = create_sale(sale_create=sale_create)
 
-    sale_data = {
-        "number": 1,
-        "title": "Test Sale",
-        "description": "Test Description",
-        "start_datetime": datetime.now(timezone.utc),
-        "end_datetime": datetime.now(timezone.utc),
-        "organisation_id": organisation.id,
-    }
-    sale_create = SaleCreate(**sale_data)
-    sale = create_sale(session=session, user_id=user.id, sale_create=sale_create)
+    result = get_sale_by_id(sale_id=created_sale.id)
 
-    # Vérification de la création de la vente
-    assert sale.title == sale_data["title"]
-    assert sale.description == sale_data["description"]
-    assert sale.organisation_id == organisation.id
+    assert isinstance(result, SaleRead)
+    assert result.id == created_sale.id
+    assert result.title == "Test Sale"
+
+    with pytest.raises(SaleNotFoundError):
+        get_sale_by_id(sale_id=9999)
 
 
-def test_get_sale_by_id(session: Session) -> None:
-    """
-    Test retrieving a sale by its ID.
-    """
-    user_data = {
-        "email": "user@example.com",
-        "password": "password",
-        "first_name": "John",
-        "last_name": "Doe",
-    }
-    user_create = UserCreate(**user_data)
-    user = create_user(session=session, user_create=user_create)
+def test_update_sale():
+    org_create = OrganisationCreate(name="Test Organisation")
+    org = create_organisation(organisation_create=org_create)
 
-    organisation = user.organisation
+    sale_create = SaleCreate(
+        number=1,
+        title="Original Sale",
+        description="Original Description",
+        start_datetime=datetime.now(timezone.utc),
+        end_datetime=datetime.now(timezone.utc),
+        organisation_id=org.id,
+    )
+    created_sale = create_sale(sale_create=sale_create)
 
-    sale_data = {
-        "number": 1,
-        "title": "Test Sale",
-        "description": "Test Description",
-        "start_datetime": datetime.now(timezone.utc),
-        "end_datetime": datetime.now(timezone.utc),
-        "organisation_id": organisation.id,
-    }
-    sale_create = SaleCreate(**sale_data)
-    created_sale = create_sale(
-        session=session, user_id=user.id, sale_create=sale_create
+    update_data = SaleUpdate(title="Updated Sale", description="Updated Description")
+    result = update_sale(
+        sale_id=created_sale.id, sale_update=update_data
     )
 
-    fetched_sale = get_sale_by_id(
-        session=session, user_id=user.id, sale_id=created_sale.id
+    assert isinstance(result, SaleRead)
+    assert result.title == "Updated Sale"
+    assert result.description == "Updated Description"
+
+    with pytest.raises(SaleNotFoundError):
+        update_sale(sale_id=9999, sale_update=update_data)
+
+
+def test_delete_sale():
+    org_create = OrganisationCreate(name="Test Organisation")
+    org = create_organisation(organisation_create=org_create)
+
+    sale_create = SaleCreate(
+        number=1,
+        title="To Delete",
+        description="This sale will be deleted",
+        start_datetime=datetime.now(timezone.utc),
+        end_datetime=datetime.now(timezone.utc),
+        organisation_id=org.id,
+    )
+    created_sale = create_sale(sale_create=sale_create)
+
+    result = delete_sale(sale_id=created_sale.id)
+
+    assert isinstance(result, SaleRead)
+    assert result.title == "To Delete"
+
+    with pytest.raises(SaleNotFoundError):
+        get_sale_by_id(sale_id=created_sale.id)
+
+    with pytest.raises(SaleNotFoundError):
+        delete_sale(sale_id=created_sale.id)
+
+
+def test_get_sales():
+    org_create = OrganisationCreate(name="Test Organisation")
+    org = create_organisation(organisation_create=org_create)
+
+    for i in range(5):
+        sale_create = SaleCreate(
+            number=i + 1,
+            title=f"Test Sale {i+1}",
+            description=f"Description {i+1}",
+            start_datetime=datetime.now(timezone.utc),
+            end_datetime=datetime.now(timezone.utc),
+            organisation_id=org.id,
+        )
+        create_sale(sale_create=sale_create)
+
+    results = get_sales(skip=0, limit=10)
+
+    assert len(results) == 5
+    assert all(isinstance(result, SaleRead) for result in results)
+
+
+def test_get_sales_by_organisation():
+    org_create1 = OrganisationCreate(name="Test Organisation 1")
+    org1 = create_organisation(organisation_create=org_create1)
+
+    org_create2 = OrganisationCreate(name="Test Organisation 2")
+    org2 = create_organisation(organisation_create=org_create2)
+
+    for i in range(3):
+        sale_create = SaleCreate(
+            number=i + 1,
+            title=f"Org1 Sale {i+1}",
+            description=f"Description {i+1}",
+            start_datetime=datetime.now(timezone.utc),
+            end_datetime=datetime.now(timezone.utc),
+            organisation_id=org1.id,
+        )
+        create_sale(sale_create=sale_create)
+
+    for i in range(2):
+        sale_create = SaleCreate(
+            number=i + 1,
+            title=f"Org2 Sale {i+1}",
+            description=f"Description {i+1}",
+            start_datetime=datetime.now(timezone.utc),
+            end_datetime=datetime.now(timezone.utc),
+            organisation_id=org2.id,
+        )
+        create_sale(sale_create=sale_create)
+
+    results_org1 = get_sales_by_organisation(
+        organisation_id=org1.id
+    )
+    results_org2 = get_sales_by_organisation(
+        organisation_id=org2.id
     )
 
-    # Vérification de la récupération de la vente
-    assert fetched_sale.id == created_sale.id
-    assert fetched_sale.title == created_sale.title
-
-
-def test_update_sale(session: Session) -> None:
-    """
-    Test updating a sale's details.
-    """
-    user_data = {
-        "email": "user@example.com",
-        "password": "password",
-        "first_name": "John",
-        "last_name": "Doe",
-    }
-    user_create = UserCreate(**user_data)
-    user = create_user(session=session, user_create=user_create)
-
-    organisation = user.organisation
-
-    sale_data = {
-        "number": 1,
-        "title": "Test Sale",
-        "description": "Test Description",
-        "start_datetime": datetime.now(timezone.utc),
-        "end_datetime": datetime.now(timezone.utc),
-        "organisation_id": organisation.id,
-    }
-    sale_create = SaleCreate(**sale_data)
-    created_sale = create_sale(
-        session=session, user_id=user.id, sale_create=sale_create
-    )
-
-    update_data = {"title": "Updated Sale", "description": "Updated Description"}
-    sale_update = SaleUpdate(**update_data)
-    updated_sale = update_sale(
-        session=session,
-        user_id=user.id,
-        sale_id=created_sale.id,
-        sale_update=sale_update,
-    )
-
-    # Vérification de la mise à jour de la vente
-    assert updated_sale.title == update_data["title"]
-    assert updated_sale.description == update_data["description"]
-
-
-def test_delete_sale(session: Session) -> None:
-    """
-    Test deleting a sale.
-    """
-    user_data = {
-        "email": "user@example.com",
-        "password": "password",
-        "first_name": "John",
-        "last_name": "Doe",
-    }
-    user_create = UserCreate(**user_data)
-    user = create_user(session=session, user_create=user_create)
-
-    organisation = user.organisation
-
-    sale_data = {
-        "number": 1,
-        "title": "Test Sale",
-        "description": "Test Description",
-        "start_datetime": datetime.now(timezone.utc),
-        "end_datetime": datetime.now(timezone.utc),
-        "organisation_id": organisation.id,
-    }
-    sale_create = SaleCreate(**sale_data)
-    created_sale = create_sale(
-        session=session, user_id=user.id, sale_create=sale_create
-    )
-
-    deleted_sale = delete_sale(
-        session=session, user_id=user.id, sale_id=created_sale.id
-    )
-
-    # Vérification de la suppression de la vente
-    assert deleted_sale.id == created_sale.id
-    with pytest.raises(HTTPException) as excinfo:
-        get_sale_by_id(session=session, user_id=user.id, sale_id=created_sale.id)
-    assert excinfo.value.status_code == status.HTTP_404_NOT_FOUND
+    assert len(results_org1) == 3
+    assert len(results_org2) == 2
+    assert all(result.organisation_id == org1.id for result in results_org1)
+    assert all(result.organisation_id == org2.id for result in results_org2)
