@@ -15,7 +15,7 @@ from app.data_layer.organisations import (
 from datetime import datetime
 
 
-def test_create_organisation(db_session):
+def test_create_organisation():
     org_create = OrganisationCreate(
         name="Test Organisation",
         organisation_type=CompanyType.SA,
@@ -29,7 +29,7 @@ def test_create_organisation(db_session):
         postal_code="75000",
         city="Paris",
     )
-    result = create_organisation(session=db_session, organisation_create=org_create)
+    result = create_organisation(organisation_create=org_create)
 
     assert isinstance(result, OrganisationRead)
     assert result.name == "Test Organisation"
@@ -38,37 +38,37 @@ def test_create_organisation(db_session):
 
     # Test création avec des champs minimaux
     min_org = OrganisationCreate(name="Minimal Org")
-    min_result = create_organisation(session=db_session, organisation_create=min_org)
+    min_result = create_organisation(organisation_create=min_org)
     assert isinstance(min_result, OrganisationRead)
     assert min_result.name == "Minimal Org"
 
 
-def test_get_organisation_by_id(db_session):
+def test_get_organisation_by_id():
     org_create = OrganisationCreate(name="Test Organisation")
     created_org = create_organisation(
-        session=db_session, organisation_create=org_create
+        organisation_create=org_create
     )
 
-    result = get_organisation_by_id(session=db_session, organisation_id=created_org.id)
+    result = get_organisation_by_id(organisation_id=created_org.id)
 
     assert isinstance(result, OrganisationRead)
     assert result.name == "Test Organisation"
 
     with pytest.raises(OrganisationNotFoundError):
-        get_organisation_by_id(session=db_session, organisation_id=9999)
+        get_organisation_by_id(organisation_id=9999)
 
 
-def test_update_organisation(db_session):
+def test_update_organisation():
     org_create = OrganisationCreate(name="Original Organisation")
     created_org = create_organisation(
-        session=db_session, organisation_create=org_create
+        organisation_create=org_create
     )
 
     update_data = OrganisationUpdate(
         name="Updated Organisation", organisation_type=CompanyType.SARL
     )
     result = update_organisation(
-        session=db_session,
+        
         organisation_id=created_org.id,
         organisation_update=update_data,
     )
@@ -80,7 +80,7 @@ def test_update_organisation(db_session):
     # Test mise à jour partielle
     partial_update = OrganisationUpdate(siren_number=987654321)
     partial_result = update_organisation(
-        session=db_session,
+        
         organisation_id=created_org.id,
         organisation_update=partial_update,
     )
@@ -89,25 +89,25 @@ def test_update_organisation(db_session):
 
     with pytest.raises(OrganisationNotFoundError):
         update_organisation(
-            session=db_session,
+            
             organisation_id=9999,
             organisation_update=OrganisationUpdate(name="Nonexistent"),
         )
 
 
-def test_delete_organisation(db_session):
+def test_delete_organisation():
     org_create = OrganisationCreate(name="To Delete")
     created_org = create_organisation(
-        session=db_session, organisation_create=org_create
+        organisation_create=org_create
     )
 
-    result = delete_organisation(session=db_session, organisation_id=created_org.id)
+    result = delete_organisation(organisation_id=created_org.id)
 
     assert isinstance(result, OrganisationRead)
     assert result.name == "To Delete"
 
     with pytest.raises(OrganisationNotFoundError):
-        get_organisation_by_id(session=db_session, organisation_id=created_org.id)
+        get_organisation_by_id(organisation_id=created_org.id)
 
     with pytest.raises(OrganisationNotFoundError):
-        delete_organisation(session=db_session, organisation_id=created_org.id)
+        delete_organisation(organisation_id=created_org.id)

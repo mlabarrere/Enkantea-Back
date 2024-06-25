@@ -13,9 +13,9 @@ from app.data_layer.organisations import create_organisation
 from app.models.organisations import OrganisationCreate
 
 
-def test_create_seller(db_session):
+def test_create_seller():
     org_create = OrganisationCreate(name="Test Organisation")
-    org = create_organisation(session=db_session, organisation_create=org_create)
+    org = create_organisation(organisation_create=org_create)
 
     seller_create = SellerCreate(
         first_name="John",
@@ -25,7 +25,7 @@ def test_create_seller(db_session):
         organisation_id=org.id,
         professional=True,
     )
-    result = create_seller(session=db_session, seller_create=seller_create)
+    result = create_seller(seller_create=seller_create)
 
     assert isinstance(result, SellerRead)
     assert result.first_name == "John"
@@ -36,9 +36,9 @@ def test_create_seller(db_session):
     assert result.professional
 
 
-def test_get_seller_by_id(db_session):
+def test_get_seller_by_id():
     org_create = OrganisationCreate(name="Test Organisation")
-    org = create_organisation(session=db_session, organisation_create=org_create)
+    org = create_organisation(organisation_create=org_create)
 
     seller_create = SellerCreate(
         first_name="John",
@@ -46,21 +46,21 @@ def test_get_seller_by_id(db_session):
         email="john.doe@example.com",
         organisation_id=org.id,
     )
-    created_seller = create_seller(session=db_session, seller_create=seller_create)
+    created_seller = create_seller(seller_create=seller_create)
 
-    result = get_seller_by_id(session=db_session, seller_id=created_seller.id)
+    result = get_seller_by_id(seller_id=created_seller.id)
 
     assert isinstance(result, SellerRead)
     assert result.id == created_seller.id
     assert result.first_name == "John"
 
     with pytest.raises(SellerNotFoundError):
-        get_seller_by_id(session=db_session, seller_id=9999)
+        get_seller_by_id(seller_id=9999)
 
 
-def test_update_seller(db_session):
+def test_update_seller():
     org_create = OrganisationCreate(name="Test Organisation")
-    org = create_organisation(session=db_session, organisation_create=org_create)
+    org = create_organisation(organisation_create=org_create)
 
     seller_create = SellerCreate(
         first_name="John",
@@ -68,13 +68,13 @@ def test_update_seller(db_session):
         email="john.doe@example.com",
         organisation_id=org.id,
     )
-    created_seller = create_seller(session=db_session, seller_create=seller_create)
+    created_seller = create_seller(seller_create=seller_create)
 
     update_data = SellerUpdate(
         first_name="Jane", email="jane.doe@example.com", professional=True
     )
     result = update_seller(
-        session=db_session, seller_id=created_seller.id, seller_update=update_data
+        seller_id=created_seller.id, seller_update=update_data
     )
 
     assert isinstance(result, SellerRead)
@@ -84,12 +84,12 @@ def test_update_seller(db_session):
     assert result.professional
 
     with pytest.raises(SellerNotFoundError):
-        update_seller(session=db_session, seller_id=9999, seller_update=update_data)
+        update_seller(seller_id=9999, seller_update=update_data)
 
 
-def test_delete_seller(db_session):
+def test_delete_seller():
     org_create = OrganisationCreate(name="Test Organisation")
-    org = create_organisation(session=db_session, organisation_create=org_create)
+    org = create_organisation(organisation_create=org_create)
 
     seller_create = SellerCreate(
         first_name="John",
@@ -97,23 +97,23 @@ def test_delete_seller(db_session):
         email="john.doe@example.com",
         organisation_id=org.id,
     )
-    created_seller = create_seller(session=db_session, seller_create=seller_create)
+    created_seller = create_seller(seller_create=seller_create)
 
-    result = delete_seller(session=db_session, seller_id=created_seller.id)
+    result = delete_seller(seller_id=created_seller.id)
 
     assert isinstance(result, SellerRead)
     assert result.first_name == "John"
 
     with pytest.raises(SellerNotFoundError):
-        get_seller_by_id(session=db_session, seller_id=created_seller.id)
+        get_seller_by_id(seller_id=created_seller.id)
 
     with pytest.raises(SellerNotFoundError):
-        delete_seller(session=db_session, seller_id=created_seller.id)
+        delete_seller(seller_id=created_seller.id)
 
 
-def test_get_sellers(db_session):
+def test_get_sellers():
     org_create = OrganisationCreate(name="Test Organisation")
-    org = create_organisation(session=db_session, organisation_create=org_create)
+    org = create_organisation(organisation_create=org_create)
 
     for i in range(5):
         seller_create = SellerCreate(
@@ -122,20 +122,20 @@ def test_get_sellers(db_session):
             email=f"john{i}.doe@example.com",
             organisation_id=org.id,
         )
-        create_seller(session=db_session, seller_create=seller_create)
+        create_seller(seller_create=seller_create)
 
-    results = get_sellers(session=db_session, skip=0, limit=10)
+    results = get_sellers(skip=0, limit=10)
 
     assert len(results) == 5
     assert all(isinstance(result, SellerRead) for result in results)
 
 
-def test_get_sellers_by_organisation(db_session):
+def test_get_sellers_by_organisation():
     org_create1 = OrganisationCreate(name="Test Organisation 1")
-    org1 = create_organisation(session=db_session, organisation_create=org_create1)
+    org1 = create_organisation(organisation_create=org_create1)
 
     org_create2 = OrganisationCreate(name="Test Organisation 2")
-    org2 = create_organisation(session=db_session, organisation_create=org_create2)
+    org2 = create_organisation(organisation_create=org_create2)
 
     for i in range(3):
         seller_create = SellerCreate(
@@ -144,7 +144,7 @@ def test_get_sellers_by_organisation(db_session):
             email=f"john{i}.doe@org1.com",
             organisation_id=org1.id,
         )
-        create_seller(session=db_session, seller_create=seller_create)
+        create_seller(seller_create=seller_create)
 
     for i in range(2):
         seller_create = SellerCreate(
@@ -153,13 +153,13 @@ def test_get_sellers_by_organisation(db_session):
             email=f"jane{i}.smith@org2.com",
             organisation_id=org2.id,
         )
-        create_seller(session=db_session, seller_create=seller_create)
+        create_seller(seller_create=seller_create)
 
     results_org1 = get_sellers_by_organisation(
-        session=db_session, organisation_id=org1.id
+        organisation_id=org1.id
     )
     results_org2 = get_sellers_by_organisation(
-        session=db_session, organisation_id=org2.id
+        organisation_id=org2.id
     )
 
     assert len(results_org1) == 3

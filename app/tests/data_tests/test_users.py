@@ -14,9 +14,9 @@ from app.data_layer.organisations import create_organisation
 from app.models.organisations import OrganisationCreate
 
 
-def test_create_user(db_session):
+def test_create_user():
     org_create = OrganisationCreate(name="Test Organisation")
-    org = create_organisation(session=db_session, organisation_create=org_create)
+    org = create_organisation(organisation_create=org_create)
 
     user_create = UserCreate(
         email="john.doe@example.com",
@@ -25,7 +25,7 @@ def test_create_user(db_session):
         last_name="Doe",
         organisation_id=org.id,
     )
-    result = create_user(session=db_session, user_create=user_create)
+    result = create_user(user_create=user_create)
 
     assert isinstance(result, UserRead)
     assert result.email == "john.doe@example.com"
@@ -35,9 +35,9 @@ def test_create_user(db_session):
     assert not hasattr(result, "password")
 
 
-def test_get_user_by_id(db_session):
+def test_get_user_by_id():
     org_create = OrganisationCreate(name="Test Organisation")
-    org = create_organisation(session=db_session, organisation_create=org_create)
+    org = create_organisation(organisation_create=org_create)
 
     user_create = UserCreate(
         email="john.doe@example.com",
@@ -46,21 +46,21 @@ def test_get_user_by_id(db_session):
         last_name="Doe",
         organisation_id=org.id,
     )
-    created_user = create_user(session=db_session, user_create=user_create)
+    created_user = create_user(user_create=user_create)
 
-    result = get_user_by_id(session=db_session, user_id=created_user.id)
+    result = get_user_by_id(user_id=created_user.id)
 
     assert isinstance(result, UserRead)
     assert result.id == created_user.id
     assert result.email == "john.doe@example.com"
 
     with pytest.raises(UserNotFoundError):
-        get_user_by_id(session=db_session, user_id=9999)
+        get_user_by_id(user_id=9999)
 
 
-def test_get_user_by_email(db_session):
+def test_get_user_by_email():
     org_create = OrganisationCreate(name="Test Organisation")
-    org = create_organisation(session=db_session, organisation_create=org_create)
+    org = create_organisation(organisation_create=org_create)
 
     user_create = UserCreate(
         email="john.doe@example.com",
@@ -69,20 +69,20 @@ def test_get_user_by_email(db_session):
         last_name="Doe",
         organisation_id=org.id,
     )
-    create_user(session=db_session, user_create=user_create)
+    create_user(user_create=user_create)
 
-    result = get_user_by_email(session=db_session, email="john.doe@example.com")
+    result = get_user_by_email(email="john.doe@example.com")
 
     assert isinstance(result, UserRead)
     assert result.email == "john.doe@example.com"
 
     with pytest.raises(UserNotFoundError):
-        get_user_by_email(session=db_session, email="nonexistent@example.com")
+        get_user_by_email(email="nonexistent@example.com")
 
 
-def test_update_user(db_session):
+def test_update_user():
     org_create = OrganisationCreate(name="Test Organisation")
-    org = create_organisation(session=db_session, organisation_create=org_create)
+    org = create_organisation(organisation_create=org_create)
 
     user_create = UserCreate(
         email="john.doe@example.com",
@@ -91,11 +91,11 @@ def test_update_user(db_session):
         last_name="Doe",
         organisation_id=org.id,
     )
-    created_user = create_user(session=db_session, user_create=user_create)
+    created_user = create_user(user_create=user_create)
 
     update_data = UserUpdate(first_name="Jane", last_name="Smith")
     result = update_user(
-        session=db_session, user_id=created_user.id, user_update=update_data
+        user_id=created_user.id, user_update=update_data
     )
 
     assert isinstance(result, UserRead)
@@ -104,12 +104,12 @@ def test_update_user(db_session):
     assert result.email == "john.doe@example.com"  # Unchanged
 
     with pytest.raises(UserNotFoundError):
-        update_user(session=db_session, user_id=9999, user_update=update_data)
+        update_user(user_id=9999, user_update=update_data)
 
 
-def test_delete_user(db_session):
+def test_delete_user():
     org_create = OrganisationCreate(name="Test Organisation")
-    org = create_organisation(session=db_session, organisation_create=org_create)
+    org = create_organisation(organisation_create=org_create)
 
     user_create = UserCreate(
         email="john.doe@example.com",
@@ -118,23 +118,23 @@ def test_delete_user(db_session):
         last_name="Doe",
         organisation_id=org.id,
     )
-    created_user = create_user(session=db_session, user_create=user_create)
+    created_user = create_user(user_create=user_create)
 
-    result = delete_user(session=db_session, user_id=created_user.id)
+    result = delete_user(user_id=created_user.id)
 
     assert isinstance(result, UserRead)
     assert result.email == "john.doe@example.com"
 
     with pytest.raises(UserNotFoundError):
-        get_user_by_id(session=db_session, user_id=created_user.id)
+        get_user_by_id(user_id=created_user.id)
 
     with pytest.raises(UserNotFoundError):
-        delete_user(session=db_session, user_id=created_user.id)
+        delete_user(user_id=created_user.id)
 
 
-def test_get_users(db_session):
+def test_get_users():
     org_create = OrganisationCreate(name="Test Organisation")
-    org = create_organisation(session=db_session, organisation_create=org_create)
+    org = create_organisation(organisation_create=org_create)
 
     for i in range(5):
         user_create = UserCreate(
@@ -144,20 +144,20 @@ def test_get_users(db_session):
             last_name="Test",
             organisation_id=org.id,
         )
-        create_user(session=db_session, user_create=user_create)
+        create_user(user_create=user_create)
 
-    results = get_users(session=db_session, skip=0, limit=10)
+    results = get_users(skip=0, limit=10)
 
     assert len(results) == 5
     assert all(isinstance(result, UserRead) for result in results)
 
 
-def test_get_users_by_organisation(db_session):
+def test_get_users_by_organisation():
     org_create1 = OrganisationCreate(name="Test Organisation 1")
-    org1 = create_organisation(session=db_session, organisation_create=org_create1)
+    org1 = create_organisation(organisation_create=org_create1)
 
     org_create2 = OrganisationCreate(name="Test Organisation 2")
-    org2 = create_organisation(session=db_session, organisation_create=org_create2)
+    org2 = create_organisation(organisation_create=org_create2)
 
     for i in range(3):
         user_create = UserCreate(
@@ -167,7 +167,7 @@ def test_get_users_by_organisation(db_session):
             last_name="Org1",
             organisation_id=org1.id,
         )
-        create_user(session=db_session, user_create=user_create)
+        create_user(user_create=user_create)
 
     for i in range(2):
         user_create = UserCreate(
@@ -177,13 +177,13 @@ def test_get_users_by_organisation(db_session):
             last_name="Org2",
             organisation_id=org2.id,
         )
-        create_user(session=db_session, user_create=user_create)
+        create_user(user_create=user_create)
 
     results_org1 = get_users_by_organisation(
-        session=db_session, organisation_id=org1.id
+        organisation_id=org1.id
     )
     results_org2 = get_users_by_organisation(
-        session=db_session, organisation_id=org2.id
+        organisation_id=org2.id
     )
 
     assert len(results_org1) == 3
