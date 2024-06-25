@@ -1,6 +1,8 @@
 from typing import TYPE_CHECKING
 from sqlmodel import Field, SQLModel, Relationship
 from datetime import datetime
+from app.models.organisations import Organisation
+
 
 if TYPE_CHECKING:
     from app.models.organisations import Organisation
@@ -32,8 +34,9 @@ class User(UserBase, table=True):
 class UserCreate(UserBase):
     email: str
     password: str
-    first_name: str
-    last_name: str
+    first_name: str | None = None
+    last_name: str | None = None
+    organisation_id: int
 
 
 class UserRegister(UserCreate):
@@ -44,6 +47,7 @@ class UserRead(UserBase):
     id: int
     created_at: datetime
     updated_at: datetime
+    organisation_id: int
 
 
 class UserUpdate(SQLModel):

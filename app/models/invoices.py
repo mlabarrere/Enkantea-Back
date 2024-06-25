@@ -9,8 +9,7 @@ if TYPE_CHECKING:
     from app.models.organisations import Organisation
     from app.models.sales import Sale
     from app.models.clients import Client
-    from app.models.lots import LotRead
-    from app.models.lots import Lot
+    from app.models.lots import LotRead, Lot
 
 
 # Enum for payment status

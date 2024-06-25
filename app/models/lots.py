@@ -7,7 +7,7 @@ if TYPE_CHECKING:
     from app.models.sales import Sale
     from app.models.clients import Client, ClientRead
     from app.models.invoices import Invoice
-    from app.models.sellers import Seller
+    from app.models.sellers import Seller, SellerRead
 
 
 class LotBase(SQLModel):
@@ -39,9 +39,9 @@ class LotBase(SQLModel):
 
 class Lot(LotBase, table=True):
     id: int = Field(default=None, primary_key=True)
-    seller_id: int | None = Field(default=None, foreign_key="client.id")
+    seller_id: int | None = Field(default=None, foreign_key="seller.id")
     seller: "Seller" = Relationship(
-        back_populates="lots_sell",
+        back_populates="lots",
         sa_relationship_kwargs={"foreign_keys": "Lot.seller_id"},
     )
     sale_id: int | None = Field(default=None, foreign_key="sale.id")
@@ -69,16 +69,20 @@ class LotCreate(LotBase):
     seller_id: int | None = None
     sale_id: int | None = None
     buyer_id: int | None = None
-    organisation_id: int | None = None
+    organisation_id: int
 
 
 class LotRead(LotBase):
     id: int
-    seller: "ClientRead"
-    buyer: "ClientRead"
+    # seller: Optional["SellerRead"] = None
+    # sale: Optional["Sale"] = None
+    # buyer: Optional["ClientRead"] = None
+    organisation_id: int
+    organisation: "Organisation"
 
 
 class LotUpdate(SQLModel):
+    organisation_id: int
     name: str | None = None
     description: str | None = None
     starting_bid: float | None = None
