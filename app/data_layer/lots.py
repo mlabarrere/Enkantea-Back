@@ -1,16 +1,14 @@
-from sqlmodel import Session
-from fastapi import HTTPException, status
 from app.models.lots import Lot, LotCreate, LotRead, LotUpdate
-from app.data_layer.utils import is_user_authorized_for_organisation
+from app.core.exceptions import DatabaseOperationError, LotNotFoundError
+from app.core.database import get_db_session
 
 
-def create_lot(session: Session, user_id: int, lot_create: LotCreate) -> LotRead:
+def create_lot(lot_create: LotCreate) -> LotRead:
     """
     Create a new lot in the database.
 
     Args:
-        session (Session): The database session.
-        user_id (int): The ID of the user creating the lot.
+        
         lot_create (LotCreate): The lot data to create.
 
     Returns:
@@ -19,35 +17,51 @@ def create_lot(session: Session, user_id: int, lot_create: LotCreate) -> LotRead
     Raises:
         HTTPException: If an error occurs during lot creation or if the user is not authorized.
     """
-    if not is_user_authorized_for_organisation(
-        session, user_id, lot_create.organisation_id
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User is not authorized to create lots for this organisation.",
-        )
-
-    try:
-        lot = Lot.model_validate(lot_create)
-        session.add(lot)
-        session.commit()
-        session.refresh(lot)
-        return lot
-    except Exception as e:
-        session.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An error occurred while creating the lot: {str(e)}",
-        )
+    with get_db_session() as session:
+        try:
+            lot = Lot.model_validate(lot_create)
+            session.add(lot)
+            session.commit()
+            session.refresh(lot)
+            return LotRead.model_validate(lot)
+        except Exception as e:
+            session.rollback()
+            raise DatabaseOperationError(f"Failed to create lot: {str(e)}")
 
 
-def get_lot_by_id(session: Session, user_id: int, lot_id: int) -> LotRead:
+def create_lots_batch(lots_create: list[LotCreate]) -> list[LotRead]:
+    """
+    Create multiple lots in the database in a single transaction.
+
+    Args:
+        
+        lots_create (List[LotCreate]): A list of lot data to create.
+
+    Returns:
+        List[LotRead]: The list of created lot data.
+
+    Raises:
+        DatabaseOperationError: If an error occurs during lot creation.
+    """
+    with get_db_session() as session:
+        try:
+            lots = [Lot.model_validate(lot_create) for lot_create in lots_create]
+            session.add_all(lots)
+            session.commit()
+            for lot in lots:
+                session.refresh(lot)
+            return [LotRead.model_validate(lot) for lot in lots]
+        except Exception as e:
+            session.rollback()
+            raise DatabaseOperationError(f"Failed to create lots in batch: {str(e)}")
+
+
+def get_lot_by_id(lot_id: int) -> LotRead:
     """
     Retrieve a lot by its ID.
 
     Args:
-        session (Session): The database session.
-        user_id (int): The ID of the user retrieving the lot.
+        
         lot_id (int): The ID of the lot to retrieve.
 
     Returns:
@@ -56,30 +70,19 @@ def get_lot_by_id(session: Session, user_id: int, lot_id: int) -> LotRead:
     Raises:
         HTTPException: If the lot is not found or if the user is not authorized.
     """
-    lot = session.get(Lot, lot_id)
-    if not lot:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Lot not found"
-        )
-
-    if not is_user_authorized_for_organisation(session, user_id, lot.organisation_id):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User is not authorized to access this lot.",
-        )
-
-    return lot
+    with get_db_session() as session:
+        lot = session.get(Lot, lot_id)
+        if not lot:
+            raise LotNotFoundError(f"Lot with id {lot_id} not found")
+        return LotRead.model_validate(lot)
 
 
-def update_lot(
-    session: Session, user_id: int, lot_id: int, lot_update: LotUpdate
-) -> LotRead:
+def update_lot(lot_id: int, lot_update: LotUpdate) -> LotRead:
     """
     Update an existing lot in the database.
 
     Args:
-        session (Session): The database session.
-        user_id (int): The ID of the user updating the lot.
+        
         lot_id (int): The ID of the lot to update.
         lot_update (LotUpdate): The updated lot data.
 
@@ -89,43 +92,30 @@ def update_lot(
     Raises:
         HTTPException: If the lot is not found or if the user is not authorized.
     """
-    
-    lot = session.get(Lot, lot_id)
-    if not lot:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Lot not found"
-        )
+    with get_db_session() as session:
+        lot = session.get(Lot, lot_id)
+        if not lot:
+            raise LotNotFoundError(f"Lot with id {lot_id} not found")
 
-    if not is_user_authorized_for_organisation(
-        session, user_id, lot.organisation_id
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User is not authorized to update this lot.",
-        )
-    try:
-        for key, value in lot_update.model_dump(exclude_unset=True).items():
-            setattr(lot, key, value)
-
-        session.add(lot)
-        session.commit()
-        session.refresh(lot)
-        return lot
-    except Exception as e:
-        session.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An error occurred while updating the lot: {str(e)}",
-        )
+        try:
+            lot_data = lot_update.model_dump(exclude_unset=True)
+            for key, value in lot_data.items():
+                setattr(lot, key, value)
+            session.add(lot)
+            session.commit()
+            session.refresh(lot)
+            return LotRead.model_validate(lot)
+        except Exception as e:
+            session.rollback()
+            raise DatabaseOperationError(f"Failed to update lot: {str(e)}")
 
 
-def delete_lot(session: Session, user_id: int, lot_id: int) -> LotRead:
+def delete_lot(lot_id: int) -> LotRead:
     """
     Delete a lot from the database.
 
     Args:
-        session (Session): The database session.
-        user_id (int): The ID of the user deleting the lot.
+        
         lot_id (int): The ID of the lot to delete.
 
     Returns:
@@ -134,27 +124,16 @@ def delete_lot(session: Session, user_id: int, lot_id: int) -> LotRead:
     Raises:
         HTTPException: If the lot is not found or if the user is not authorized.
     """
-    try:
+    with get_db_session() as session:
         lot = session.get(Lot, lot_id)
         if not lot:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Lot not found"
-            )
+            raise LotNotFoundError(f"Lot with id {lot_id} not found")
 
-        if not is_user_authorized_for_organisation(
-            session, user_id, lot.organisation_id
-        ):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="User is not authorized to delete this lot.",
-            )
-
-        session.delete(lot)
-        session.commit()
-        return lot
-    except Exception as e:
-        session.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An error occurred while deleting the lot: {str(e)}",
-        )
+        try:
+            deleted_lot = LotRead.model_validate(lot)
+            session.delete(lot)
+            session.commit()
+            return deleted_lot
+        except Exception as e:
+            session.rollback()
+            raise DatabaseOperationError(f"Failed to delete lot: {str(e)}")
