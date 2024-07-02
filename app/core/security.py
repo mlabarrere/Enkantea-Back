@@ -1,17 +1,16 @@
-from datetime import datetime, timedelta
 import jwt
 from passlib.context import CryptContext
 from app.core.config import settings
+from app.models.security import TokenPayload
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-ALGORITHM = "HS256"
 
-
-def create_access_token(subject: str, expires_delta: timedelta) -> str:
-    expire = datetime.now(datetime.UTC) + expires_delta
-    to_encode = {"exp": expire, "sub": str(subject)}
+def create_access_token(payload: TokenPayload) -> str:
+    to_encode = payload.model_dump()
     encoded_jwt = jwt.encode(
-        payload=to_encode, key=settings.SECRET_KEY, algorithm=ALGORITHM
+        payload=to_encode,
+        key=settings.SECRET_KEY,
+        algorithm=settings.TOKEN_ALGORITHM
     )
     return encoded_jwt
 
