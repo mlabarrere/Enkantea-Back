@@ -3,7 +3,7 @@ sqlmodel
 pandas
 openpyxl
 python-jose
-bcrypt==4.0.1
+bcrypt==4.2.0
 passlib
 pydantic-settings
 pyjwt
