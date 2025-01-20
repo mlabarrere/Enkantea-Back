@@ -1,0 +1,90 @@
+from uuid import UUID
+
+from app.core.exceptions import UserNotFoundError, DuplicateValueException
+
+from app.users.models import UserRead, UserCreate, UserUpdate, UserRegister
+from app.users.CRUD import UsersDB
+
+from app.organisations.models_organisations import OrganisationCreate
+from app.organisations.models_permissions import UserRole
+from app.organisations.CRUD import create_organisation
+from app.organisations.utils import add_user_to_organisation
+
+class Users:
+    @classmethod
+    async def get(cls, user_uuid: UUID) -> UserRead:
+        try:
+            return await UsersDB.get_by_uuid(user_uuid=user_uuid)
+        except UserNotFoundError as e:
+            raise UserNotFoundError(f"User with UUID {user_uuid} not found") from e
+        except Exception as e:
+            raise ValueError(f"Error retrieving user: {e}") from e
+
+    @classmethod
+    async def get_registering_user(cls, user_email: str) -> UserRegister:
+        try:
+            return await UsersDB.get_by_email(email=user_email)
+        except UserNotFoundError as e:
+            raise UserNotFoundError(f"User with email {user_email} not found") from e
+        except Exception as e:
+            raise ValueError(f"Error retrieving user: {e}") from e
+
+
+    @classmethod
+    async def create(cls, user_to_create: UserCreate) -> UserRead:
+        if await cls.email_exists(email=user_to_create.email):
+            raise DuplicateValueException("Email is already registered")
+
+        try:
+            created_user = await UsersDB.create(user_create=user_to_create)
+            
+            organisation_details = OrganisationCreate(name=f"Organisation de {created_user.last_name}")
+            user_orga = await create_organisation(organisation_create=organisation_details)
+            
+            _ = await add_user_to_organisation(user_uuid=created_user.uuid, orga_uuid=user_orga.uuid, role=UserRole.ADMIN)
+            
+            return created_user
+        except Exception as e:
+            raise ValueError(f"Error creating user: {e}") from e
+
+    @classmethod
+    async def update(cls, user_to_update: UserUpdate) -> UserRead:
+        try:
+            return await UsersDB.update(user_update=user_to_update)
+        except UserNotFoundError as e:
+            raise UserNotFoundError(f"User with UUID {user_to_update.uuid} not found") from e
+        except Exception as e:
+            raise ValueError(f"Error updating user: {e}") from e
+
+    """@classmethod
+    async def delete(cls, user_uuid: UUID) -> None:
+        try:
+            user_orgs = await get_user_organisations(user_uuid)
+            for org in user_orgs:
+                org_users = await cls.get_organisation_users(org.uuid)
+                if len(org_users) == 1 and org_users[0].uuid == user_uuid:
+                    raise ValueError(f"Cannot delete user: last member of organisation {org.name}")
+                await remove_user_from_organisation(user_uuid, org.uuid)
+            
+            await delete_user_d(user_uuid)
+        except UserNotFoundError as e:
+            raise UserNotFoundError(f"User with UUID {user_uuid} not found") from e
+        except Exception as e:
+            raise ValueError(f"Error deleting user: {e}") from e
+    """
+    @staticmethod
+    async def email_exists(email: str) -> bool:
+        try:
+            await UsersDB.get_by_email(email=email)
+            return True
+        except UserNotFoundError:
+            return False
+
+    @classmethod
+    async def get_user_organisations(cls, user_uuid: UUID) -> list[UUID]:
+        try:
+            return await UsersDB.get_all_orgas_of_user(user_uuid)
+        except UserNotFoundError as e:
+            raise UserNotFoundError(f"User with UUID {user_uuid} not found") from e
+        except Exception as e:
+            raise ValueError(f"Error retrieving user organisations: {e}") from e
